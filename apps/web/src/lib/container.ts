@@ -14,6 +14,10 @@ async function getInfrastructure() {
   const { PrismaMetricsRepository } = await import('../infrastructure/optimizer/PrismaMetricsRepository');
   const { PrismaOptimizerActionRepository } = await import('../infrastructure/optimizer/PrismaOptimizerActionRepository');
   const { PrismaCampaignRepository } = await import('../infrastructure/campaigns/PrismaCampaignRepository');
+  const { PrismaChannelRepository } = await import('../infrastructure/channels/PrismaChannelRepository');
+  const { PrismaLaunchRepository } = await import('../infrastructure/channels/PrismaLaunchRepository');
+  const { PrismaMessagingFlowRepository } = await import('../infrastructure/messaging/PrismaMessagingFlowRepository');
+  const { WhatsAppCloudGateway } = await import('../infrastructure/messaging/WhatsAppCloudGateway');
 
   const integrationRepo = new PrismaIntegrationRepository(prisma);
   const creativeRepo = new PrismaCreativeRepository(prisma);
@@ -27,6 +31,10 @@ async function getInfrastructure() {
   const metricsRepo = new PrismaMetricsRepository(prisma);
   const optimizerActionRepo = new PrismaOptimizerActionRepository(prisma);
   const campaignRepo = new PrismaCampaignRepository(prisma);
+  const channelRepo = new PrismaChannelRepository(prisma);
+  const launchRepo = new PrismaLaunchRepository(prisma);
+  const flowRepo = new PrismaMessagingFlowRepository(prisma);
+  const whatsappGateway = new WhatsAppCloudGateway();
 
   const encryption = {
     encrypt: encryptCredentials,
@@ -43,6 +51,11 @@ async function getInfrastructure() {
     ComputeHotScoreUseCase,
     PublishToChannelUseCase,
     RunOodaLoopUseCase,
+    CreateChannelUseCase,
+    ScheduleEditorialUseCase,
+    CreateFlowUseCase,
+    SendWhatsAppMessageUseCase,
+    InitiateLaunchUseCase,
   } = await import('@nextface/application');
 
   return {
@@ -67,6 +80,14 @@ async function getInfrastructure() {
       auditRepo,
     ),
     runOodaLoop: new RunOodaLoopUseCase(campaignRepo, metricsRepo, optimizerActionRepo, auditRepo),
+    createChannel: new CreateChannelUseCase(channelRepo, auditRepo),
+    scheduleEditorial: new ScheduleEditorialUseCase(
+      { create: async (item) => { await prisma.editorialItem.create({ data: { id: item.id, channelId: item.channelId, creativeId: item.creativeId, scheduledAt: item.scheduledAt, status: item.status as never, caption: item.caption, hashtags: item.hashtags } }); return item; }, findByChannel: async (channelId, opts) => { const rows = await prisma.editorialItem.findMany({ where: { channelId, ...(opts?.from && { scheduledAt: { gte: opts.from } }) }, take: opts?.limit ?? 50, orderBy: { scheduledAt: 'asc' } }); return rows.map(r => ({ id: r.id, channelId: r.channelId, creativeId: r.creativeId ?? undefined, scheduledAt: r.scheduledAt, status: r.status, caption: r.caption ?? undefined, hashtags: r.hashtags })); }, updateStatus: async (id, status) => { await prisma.editorialItem.update({ where: { id }, data: { status: status as never } }); } },
+      auditRepo,
+    ),
+    createFlow: new CreateFlowUseCase(flowRepo, auditRepo),
+    sendWhatsApp: new SendWhatsAppMessageUseCase(integrationRepo, whatsappGateway, encryption, auditRepo),
+    initiateLaunch: new InitiateLaunchUseCase(launchRepo, productRepo, auditRepo),
   };
 }
 

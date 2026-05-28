@@ -33,5 +33,21 @@ export type { ApproveCreativeInput, ApproveCreativeOutput } from './use-cases/cr
 export { PublishToChannelUseCase } from './use-cases/publishing/PublishToChannelUseCase';
 export type { PublishToChannelInput, PublishToChannelOutput } from './use-cases/publishing/PublishToChannelUseCase';
 
+// Use Cases — Channels
+export { CreateChannelUseCase } from './use-cases/channels/CreateChannelUseCase';
+export type { CreateChannelInput, ChannelRepository, ChannelData } from './use-cases/channels/CreateChannelUseCase';
+export { ScheduleEditorialUseCase } from './use-cases/channels/ScheduleEditorialUseCase';
+export type { ScheduleEditorialInput, EditorialRepository, EditorialItemData } from './use-cases/channels/ScheduleEditorialUseCase';
+
+// Use Cases — Messaging
+export { CreateFlowUseCase } from './use-cases/messaging/CreateFlowUseCase';
+export type { CreateFlowInput, MessagingFlowRepository, FlowData, FlowStep } from './use-cases/messaging/CreateFlowUseCase';
+export { SendWhatsAppMessageUseCase } from './use-cases/messaging/SendWhatsAppMessageUseCase';
+export type { SendWhatsAppInput, WhatsAppGateway } from './use-cases/messaging/SendWhatsAppMessageUseCase';
+
+// Use Cases — Launch
+export { InitiateLaunchUseCase } from './use-cases/launch/InitiateLaunchUseCase';
+export type { InitiateLaunchInput, InitiateLaunchOutput, LaunchRepository, LaunchData } from './use-cases/launch/InitiateLaunchUseCase';
+
 // Use Cases — Optimizer
 export { RunOodaLoopUseCase } from './use-cases/optimizer/RunOodaLoopUseCase';

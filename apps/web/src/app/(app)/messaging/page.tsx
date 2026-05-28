@@ -1,8 +1,11 @@
-export default function MensagensPage() {
-  return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-      <h1 className="text-2xl font-bold mb-2">Mensagens</h1>
-      <p className="text-gray-400 text-sm">Em breve</p>
-    </div>
-  );
+export const dynamic = 'force-dynamic';
+import { auth } from '@/lib/auth';
+import { prisma } from '@/lib/db';
+import { MessagingView } from '@/views/messaging/MessagingView';
+
+export default async function MessagingPage() {
+  const session = await auth();
+  const orgId = session?.user?.orgId ?? '';
+  const flows = await prisma.messagingFlow.findMany({ where: { orgId }, orderBy: { createdAt: 'desc' } });
+  return <MessagingView flows={flows.map(f => ({ id: f.id, provider: f.provider, name: f.name, steps: f.steps as unknown[], metrics: f.metrics as Record<string, unknown> }))} />;
 }

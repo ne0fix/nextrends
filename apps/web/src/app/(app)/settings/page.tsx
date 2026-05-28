@@ -1,8 +1,11 @@
-export default function ConfiguracoesPage() {
-  return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-      <h1 className="text-2xl font-bold mb-2">Configurações</h1>
-      <p className="text-gray-400 text-sm">Em breve</p>
-    </div>
-  );
+export const dynamic = 'force-dynamic';
+import { auth } from '@/lib/auth';
+import { prisma } from '@/lib/db';
+import { SettingsView } from '@/views/settings/SettingsView';
+
+export default async function SettingsPage() {
+  const session = await auth();
+  const orgId = session?.user?.orgId ?? '';
+  const org = await prisma.organization.findUnique({ where: { id: orgId }, select: { name: true, plan: true } });
+  return <SettingsView orgName={org?.name ?? ''} userEmail={session?.user?.email ?? ''} plan={org?.plan ?? 'STARTER'} />;
 }
