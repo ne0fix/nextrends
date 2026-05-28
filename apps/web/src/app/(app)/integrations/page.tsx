@@ -4,7 +4,7 @@ import { IntegrationsView } from '@/views/integrations/IntegrationsView';
 
 export default async function IntegrationsPage() {
   const session = await auth();
-  const orgId = session!.user.orgId!;
+  const orgId = session?.user?.orgId ?? '';
 
   const integrations = await prisma.integration.findMany({
     where: { orgId },

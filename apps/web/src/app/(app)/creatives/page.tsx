@@ -4,7 +4,7 @@ import { CreativesView } from '@/views/creatives/CreativesView';
 
 export default async function CreativesPage() {
   const session = await auth();
-  const orgId = session!.user.orgId!;
+  const orgId = session?.user?.orgId ?? '';
 
   const creatives = await prisma.creative.findMany({
     where: { orgId },

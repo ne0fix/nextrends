@@ -4,7 +4,7 @@ import { DashboardView } from '@/views/dashboard/DashboardView';
 
 export default async function DashboardPage() {
   const session = await auth();
-  const orgId = session!.user.orgId!;
+  const orgId = session?.user?.orgId ?? '';
 
   const [creativesCount, integrationsCount, campaignsCount] = await Promise.all([
     prisma.creative.count({ where: { orgId } }),
