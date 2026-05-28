@@ -4,26 +4,35 @@ import Google from 'next-auth/providers/google';
 import Resend from 'next-auth/providers/resend';
 import { prisma } from './db';
 
-const authConfig: Parameters<typeof NextAuth>[0] = {
+const hasGoogle = !!(process.env.GOOGLE_OAUTH_CLIENT_ID && process.env.GOOGLE_OAUTH_CLIENT_SECRET);
+const hasResend = !!(process.env.RESEND_API_KEY);
+
+const nextAuth: NextAuthResult = NextAuth({
   adapter: PrismaAdapter(prisma),
   providers: [
-    Google({
-      clientId: process.env.GOOGLE_OAUTH_CLIENT_ID ?? '',
-      clientSecret: process.env.GOOGLE_OAUTH_CLIENT_SECRET ?? '',
-    }),
+    ...(hasGoogle ? [Google({
+      clientId: process.env.GOOGLE_OAUTH_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_OAUTH_CLIENT_SECRET!,
+    })] : []),
     Resend({
       from: 'noreply@nextface.app',
-      apiKey: process.env.RESEND_API_KEY ?? 'dev',
+      apiKey: hasResend ? process.env.RESEND_API_KEY! : 'resend_placeholder',
+      sendVerificationRequest: hasResend ? undefined : async ({ url }) => {
+        // Dev mode: log the magic link instead of sending email
+        console.warn('[NextFace Auth] Magic link:', url);
+      },
     }),
   ],
   session: { strategy: 'database' },
   callbacks: {
     async session({ session, user }) {
+      if (!user?.id) return session;
+
       const membership = await prisma.membership.findFirst({
         where: { userId: user.id },
         include: { org: true },
         orderBy: { org: { createdAt: 'asc' } },
-      });
+      }).catch(() => null);
 
       return {
         ...session,
@@ -41,8 +50,7 @@ const authConfig: Parameters<typeof NextAuth>[0] = {
     signIn: '/login',
     error: '/login',
   },
-};
-
-const nextAuth: NextAuthResult = NextAuth(authConfig);
+  debug: process.env.NODE_ENV === 'development',
+});
 
 export const { handlers, auth, signIn, signOut } = nextAuth;
