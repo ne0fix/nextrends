@@ -66,13 +66,13 @@ export class PrismaIntegrationRepository implements IntegrationRepository {
       where: { orgId_provider: { orgId: p.orgId, provider: p.provider } },
       create: {
         id: p.id, orgId: p.orgId, provider: p.provider, status: p.status,
-        externalAccountIds: p.externalAccountIds, encryptedCredentials,
+        externalAccountIds: p.externalAccountIds, encryptedCredentials: new Uint8Array(encryptedCredentials),
         scopes: p.scopes, expiresAt: p.expiresAt,
         lastHealthOk: p.lastHealthOk,
       },
       update: {
         status: p.status, externalAccountIds: p.externalAccountIds,
-        encryptedCredentials, scopes: p.scopes, expiresAt: p.expiresAt,
+        encryptedCredentials: new Uint8Array(encryptedCredentials), scopes: p.scopes, expiresAt: p.expiresAt,
         lastHealthOk: p.lastHealthOk,
       },
     });
@@ -84,7 +84,7 @@ export class PrismaIntegrationRepository implements IntegrationRepository {
 
   async getEncryptedCredentials(id: string) {
     const row = await this.db.integration.findUnique({ where: { id }, select: { encryptedCredentials: true } });
-    return row ? Buffer.from(row.encryptedCredentials) : null;
+    return row ? Buffer.from(row.encryptedCredentials as Uint8Array) : null;
   }
 
   async delete(id: string) {
