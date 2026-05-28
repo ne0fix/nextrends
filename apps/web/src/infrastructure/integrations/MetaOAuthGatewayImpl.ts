@@ -49,8 +49,13 @@ export class MetaOAuthGatewayImpl implements MetaOAuthGateway {
     const base = `${this.baseUrl}/me`;
 
     const bizRes = await fetch(`${base}?fields=businesses{id,name}&access_token=${accessToken}`);
-    const bizData = await bizRes.json() as { businesses?: { data: Array<{ id: string }> } };
-    const businessId = bizData.businesses?.data[0]?.id ?? '';
+    const bizRaw = await bizRes.json() as { businesses?: { data: Array<{ id: string }> }; error?: { message: string } };
+    if (bizRaw.error) console.warn('Meta businesses fetch error:', bizRaw.error.message);
+    const businessId = bizRaw.businesses?.data[0]?.id ?? '';
+
+    if (!businessId) {
+      return { businessId: '', adAccounts: [], pages: [], instagramAccounts: [], pixelIds: [] };
+    }
 
     const [adRes, pagesRes] = await Promise.all([
       fetch(`${this.baseUrl}/${businessId}/owned_ad_accounts?fields=id&access_token=${accessToken}`),

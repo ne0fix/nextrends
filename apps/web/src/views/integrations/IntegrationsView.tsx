@@ -1,5 +1,6 @@
 'use client';
 
+import { useSearchParams } from 'next/navigation';
 import { env } from '@/lib/env';
 import { CheckCircle2, AlertCircle, XCircle, ExternalLink } from 'lucide-react';
 
@@ -79,6 +80,10 @@ function metaOAuthUrl(): string {
 }
 
 export function IntegrationsView({ integrations }: { integrations: Integration[] }) {
+  const searchParams = useSearchParams();
+  const errorParam = searchParams.get('error');
+  const detailParam = searchParams.get('detail');
+
   const connected = integrations.reduce<Record<string, Integration>>((acc, i) => {
     acc[i.provider] = i;
     return acc;
@@ -88,6 +93,13 @@ export function IntegrationsView({ integrations }: { integrations: Integration[]
     <div>
       <h1 className="text-2xl font-bold mb-2">Integrações</h1>
       <p className="text-gray-500 text-sm mb-4">Conecte suas plataformas para ativar a automação.</p>
+
+      {errorParam && (
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl text-sm">
+          <p className="font-semibold text-red-800">Erro: {errorParam}</p>
+          {detailParam && <p className="text-red-700 text-xs mt-1 font-mono break-all">{detailParam}</p>}
+        </div>
+      )}
 
       {process.env.NEXT_PUBLIC_META_APP_REVIEW !== 'true' && (
         <div className="mb-5 p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm">

@@ -30,7 +30,8 @@ export async function GET(req: NextRequest) {
       new URL(`/integrations?success=meta&pages=${result.pages.length}&accounts=${result.adAccounts.length}`, req.url)
     );
   } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
     console.error('Meta OAuth callback error', err);
-    return NextResponse.redirect(new URL('/integrations?error=meta_oauth_failed', req.url));
+    return NextResponse.redirect(new URL(`/integrations?error=meta_oauth_failed&detail=${encodeURIComponent(msg)}`, req.url));
   }
 }
