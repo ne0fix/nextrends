@@ -1,0 +1,90 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    name: Typecheck, Lint & Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: nextface
+          POSTGRES_PASSWORD: nextface
+          POSTGRES_DB: nextface_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm turbo typecheck
+
+      - name: Lint
+        run: pnpm turbo lint
+
+      - name: Generate Prisma Client
+        run: pnpm --filter web exec prisma generate
+        env:
+          DATABASE_URL: postgresql://nextface:nextface@localhost:5432/nextface_test
+
+      - name: Run DB migrations
+        run: pnpm --filter web exec prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://nextface:nextface@localhost:5432/nextface_test
+          DIRECT_URL: postgresql://nextface:nextface@localhost:5432/nextface_test
+
+      - name: Run tests
+        run: pnpm turbo test
+        env:
+          DATABASE_URL: postgresql://nextface:nextface@localhost:5432/nextface_test
+          DIRECT_URL: postgresql://nextface:nextface@localhost:5432/nextface_test
+          NEXTAUTH_SECRET: test-secret-ci-32chars-minimum!!
+          ENCRYPTION_KEY: test-encryption-key-32chars!!!!!
+          ANTHROPIC_API_KEY: sk-test-not-real
+
+  deploy:
+    name: Deploy Vercel (prod)
+    runs-on: ubuntu-latest
+    needs: check
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Deploy to Vercel
+        run: npx vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}

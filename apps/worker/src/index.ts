@@ -1,10 +1,12 @@
 import Redis from 'ioredis';
 import pino from 'pino';
+import { PrismaClient } from '@prisma/client';
 import { createQueues } from './queues.js';
 import { registerSchedulers } from './schedulers.js';
 import { startOptimizerWorker } from './workers/optimizer.worker.js';
 import { startCreativeWorker } from './workers/creative.worker.js';
 import { startHealthCheckWorker } from './workers/health-check.worker.js';
+import { startPublishingWorker } from './workers/publishing.worker.js';
 
 const logger = pino({
   level: process.env.LOG_LEVEL ?? 'info',
@@ -14,18 +16,48 @@ const logger = pino({
 });
 
 const REDIS_URL = process.env.REDIS_URL ?? 'redis://localhost:6379';
+const WEB_API_URL = process.env.WEB_API_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+const WORKER_SECRET = process.env.WORKER_SECRET ?? '';
+
 const connection = new Redis(REDIS_URL, { maxRetriesPerRequest: null });
+const prisma = new PrismaClient();
 
 connection.on('connect', () => logger.info('Redis connected'));
 connection.on('error', (err) => logger.error({ err }, 'Redis error'));
+
+async function callWebApi(path: string, body: unknown): Promise<unknown> {
+  const res = await fetch(`${WEB_API_URL}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-worker-secret': WORKER_SECRET },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`${path} failed: ${await res.text()}`);
+  return res.json();
+}
+
+async function getAllOrgIds(): Promise<string[]> {
+  const orgs = await prisma.organization.findMany({ select: { id: true } });
+  return orgs.map(o => o.id);
+}
+
+async function getContainer() {
+  return {
+    generateCreative: { execute: (input: unknown) => callWebApi('/api/v1/creatives', input) },
+    publishToChannel: { execute: (input: unknown) => callWebApi('/api/v1/publishing/publish', input) },
+    healthCheck: { execute: (orgId: string) => callWebApi('/api/v1/integrations/health-check', { orgId }) },
+    runOodaLoop: { execute: async (_input: unknown) => { logger.info('OODA loop stub — Sprint 3'); } },
+    getAllOrgIds,
+  };
+}
 
 const queues = createQueues(connection);
 await registerSchedulers(queues, logger);
 
 const workers = [
-  startOptimizerWorker(connection, logger),
-  startCreativeWorker(connection, logger),
-  startHealthCheckWorker(connection, logger),
+  startOptimizerWorker(connection, logger, getContainer),
+  startCreativeWorker(connection, logger, getContainer),
+  startHealthCheckWorker(connection, logger, getContainer),
+  startPublishingWorker(connection, logger, getContainer),
 ];
 
 logger.info({ workerCount: workers.length }, 'NextFace Worker started');
@@ -33,6 +65,7 @@ logger.info({ workerCount: workers.length }, 'NextFace Worker started');
 async function shutdown() {
   logger.info('Graceful shutdown...');
   await Promise.all(workers.map(w => w.close()));
+  await prisma.$disconnect();
   await connection.quit();
   process.exit(0);
 }

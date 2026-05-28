@@ -10,7 +10,12 @@
     "@nextface/domain": "workspace:*",
     "@nextface/schemas": "workspace:*"
   },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
   "devDependencies": {
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vitest": "^2.0.0"
   }
 }

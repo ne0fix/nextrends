@@ -6,31 +6,66 @@ async function getInfrastructure() {
   const { PrismaCreativeRepository } = await import('../infrastructure/creative/PrismaCreativeRepository');
   const { PrismaProductRepository } = await import('../infrastructure/discovery/PrismaProductRepository');
   const { PrismaAuditLogRepository } = await import('../infrastructure/governance/PrismaAuditLogRepository');
+  const { PrismaPublicationRepository } = await import('../infrastructure/publishing/PrismaPublicationRepository');
   const { ClaudeAiGenerationGateway } = await import('../infrastructure/ai/ClaudeAiGenerationGateway');
   const { ComplianceCheckerGatewayImpl } = await import('../infrastructure/compliance/ComplianceCheckerGatewayImpl');
   const { MetaOAuthGatewayImpl } = await import('../infrastructure/integrations/MetaOAuthGatewayImpl');
+  const { MetaPublishingGatewayImpl } = await import('../infrastructure/publishing/MetaPublishingGatewayImpl');
 
   const integrationRepo = new PrismaIntegrationRepository(prisma);
   const creativeRepo = new PrismaCreativeRepository(prisma);
   const productRepo = new PrismaProductRepository(prisma);
   const auditRepo = new PrismaAuditLogRepository(prisma);
+  const publicationRepo = new PrismaPublicationRepository(prisma);
   const aiGateway = new ClaudeAiGenerationGateway();
   const complianceGateway = new ComplianceCheckerGatewayImpl(aiGateway);
   const metaOauth = new MetaOAuthGatewayImpl();
+  const publishingGateway = new MetaPublishingGatewayImpl();
 
   const encryption = {
     encrypt: encryptCredentials,
     decrypt: decryptCredentials,
   };
 
-  const { ConnectMetaIntegrationUseCase } = await import('@nextface/application');
-  const { HealthCheckIntegrationsUseCase } = await import('@nextface/application');
-  const { GenerateCreativeUseCase } = await import('@nextface/application');
+  const {
+    ConnectMetaIntegrationUseCase,
+    HealthCheckIntegrationsUseCase,
+    GenerateCreativeUseCase,
+    MutateCreativeUseCase,
+    ApproveCreativeUseCase,
+    IndexProductUseCase,
+    ComputeHotScoreUseCase,
+    PublishToChannelUseCase,
+    RunOodaLoopUseCase,
+  } = await import('@nextface/application');
 
   return {
     connectMeta: new ConnectMetaIntegrationUseCase(integrationRepo, metaOauth, encryption, auditRepo),
-    healthCheckIntegrations: new HealthCheckIntegrationsUseCase(integrationRepo, { check: async () => ({ ok: true }) }, encryption, auditRepo),
+    healthCheckIntegrations: new HealthCheckIntegrationsUseCase(
+      integrationRepo,
+      { check: async () => ({ ok: true }) },
+      encryption,
+      auditRepo,
+    ),
     generateCreative: new GenerateCreativeUseCase(creativeRepo, productRepo, aiGateway, complianceGateway, auditRepo),
+    mutateCreative: new MutateCreativeUseCase(creativeRepo, aiGateway, complianceGateway, auditRepo),
+    approveCreative: new ApproveCreativeUseCase(creativeRepo, auditRepo),
+    indexProduct: new IndexProductUseCase(productRepo, aiGateway, auditRepo),
+    computeHotScore: new ComputeHotScoreUseCase(productRepo, aiGateway),
+    publishToChannel: new PublishToChannelUseCase(
+      creativeRepo,
+      integrationRepo,
+      publishingGateway,
+      publicationRepo,
+      encryption,
+      auditRepo,
+    ),
+    runOodaLoop: new RunOodaLoopUseCase(
+      {} as never,
+      {} as never,
+      {} as never,
+      auditRepo,
+    ),
   };
 }
 
