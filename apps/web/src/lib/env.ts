@@ -33,7 +33,10 @@ const envSchema = z.object({
   S3_BUCKET:           z.string().default('nextface-assets'),
   S3_ACCESS_KEY:       optStr,
   S3_SECRET_KEY:       optStr,
-  AUTONOMY_MODE_DEFAULT: z.enum(['OBSERVER','COPILOT','AUTONOMOUS','SOVEREIGN']).default('COPILOT'),
+  AUTONOMY_MODE_DEFAULT: z.preprocess(
+    (v) => (typeof v === 'string' ? v.toUpperCase() : v),
+    z.enum(['OBSERVER','COPILOT','AUTONOMOUS','SOVEREIGN']).default('COPILOT')
+  ),
   DAILY_BUDGET_HARD_CAP: z.coerce.number().default(500),
   ENABLE_REAL_PUBLISHING: z.preprocess((v) => v === 'true' || v === true, z.boolean()).default(false),
   NODE_ENV: z.enum(['development','test','production']).default('development'),
