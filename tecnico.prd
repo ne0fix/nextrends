@@ -1,0 +1,1122 @@
+# PRD Técnico — NextFace
+
+**Codinome do projeto:** NextFace
+**Versão do documento:** 1.0
+**Data:** 2026-05-28
+**Documentos relacionados:** `lnogocios.prd` v1.2 (lógica de negócio)
+**Escopo:** Arquitetura, contratos, modelo de dados, padrões de código, infraestrutura, segurança, observabilidade e estratégia de testes para realizar o produto definido no PRD de negócio.
+
+---
+
+## 1. Stack Tecnológica Oficial
+
+### 1.1 Frontend (Web App)
+- **Framework**: Next.js 15 (App Router) com **SSR** padrão e RSC (React Server Components) onde fizer sentido.
+- **Linguagem**: TypeScript 5.x em modo `strict`.
+- **UI**: Tailwind CSS 4 + tokens próprios (`@theme`), shadcn/ui (Radix headless) como base de componentes.
+- **State server**: TanStack Query v5 (cache, mutation, optimistic UI).
+- **State cliente**: Zustand para estado de UI complexo; React state local para o trivial.
+- **Forms**: React Hook Form + Zod resolver.
+- **Charts**: Recharts (dashboards) + ECharts apenas para visualizações pesadas (Sankey, treemap).
+- **Tabelas**: TanStack Table.
+- **Internacionalização**: `next-intl` (PT-BR default, EN/ES em v2).
+- **Animações**: Framer Motion (apenas em pontos críticos de UX).
+- **Icons**: lucide-react.
+
+### 1.2 Backend (BFF + Workers)
+- **Camada BFF dentro do Next.js**: Route Handlers do App Router (`app/api/**/route.ts`) para chamadas síncronas do front; **tRPC v11** opcional para tipagem ponta-a-ponta.
+- **Linguagem**: TypeScript 5.x.
+- **ORM**: Prisma 6.x.
+- **Database**: PostgreSQL 16 (RDS/Neon/Supabase em produção; Docker em dev).
+- **Cache + filas**: Redis 7 + **BullMQ** (workers Node, fora do processo Next.js).
+- **Object storage**: S3-compatible (Cloudflare R2 padrão; AWS S3/DO Spaces aceitos).
+- **Search**: Postgres full-text + `pg_trgm` no MVP; OpenSearch em v2 se necessário.
+- **Schedule**: BullMQ Repeatable Jobs + `pg_cron` para tarefas atreladas ao DB.
+
+### 1.3 Inteligência Artificial
+- **LLM primário**: Anthropic Claude Sonnet 4.6 via `@anthropic-ai/sdk`.
+- **LLM fallback**: OpenAI GPT-4o.
+- **Image generation**: provedor selecionável via abstração (DALL·E 3, Flux Pro via Replicate, Ideogram).
+- **Voice**: ElevenLabs (clonagem + TTS).
+- **Video**: HeyGen (avatares + B-roll com Veo 3.1/Sora 2 via wrapper deles); Synthesia opcional.
+- **Embeddings**: `text-embedding-3-large` (OpenAI) ou `voyage-large-2` (configurável).
+- **Vector store**: `pgvector` no Postgres (RAG de "DNA criativo" e dossiês de produto).
+
+### 1.4 Observabilidade
+- **Logs**: pino + correlation id; sink para Loki/Datadog em prod.
+- **Metrics**: OpenTelemetry → Prometheus/Grafana ou Datadog.
+- **Errors**: Sentry (front + back + workers).
+- **Audit trail**: tabela `audit_log` append-only com retenção 24 meses.
+
+### 1.5 Auth & Identity
+- **NextAuth (Auth.js) v5** com providers e-mail magic link + Google OAuth no v1; SSO/SAML em v2.
+- Sessão JWT assinada + refresh em banco; cookie `httpOnly` `secure` `sameSite=lax`.
+- Multi-tenant (organização → membros) com **RBAC** custom.
+
+### 1.6 Deploy
+- **Web (Next.js)**: Vercel (preferencial) ou Docker em VPS/Kubernetes.
+- **Workers (Node)**: Fly.io / Railway / Render / Kubernetes — separados do web.
+- **Database/Redis**: Neon/Supabase/Railway/Upstash; produção pode migrar para RDS + ElastiCache.
+- **Edge functions**: somente para pixel ingestion e short URL redirect.
+
+### 1.7 Versões mínimas
+- Node.js LTS atual (22.x).
+- pnpm 10.
+- Postgres 16+, Redis 7+.
+
+---
+
+## 2. Princípios Arquiteturais
+
+### 2.1 Clean Architecture + MVVM no Front
+- **Camadas independentes**: `domain` ↔ `application` ↔ `infrastructure` ↔ `presentation`.
+- **Dependências apontam para dentro**: regras de negócio (`domain`) **não** conhecem framework/IO.
+- **MVVM no presentation**: View (componente RSC/CSR) ↔ ViewModel (hook tipado) ↔ Model (domínio).
+- **Injeção de dependência** explícita (não usar reflection/decoradores mágicos); um `composition-root` por bounded context.
+
+### 2.2 Bounded Contexts (mapa)
+Cada módulo do PRD de negócio vira um bounded context técnico:
+
+| Contexto | Responsabilidade |
+|----------|------------------|
+| `iam` | Auth, organizações, RBAC, billing pointers |
+| `discovery` | Catalogação e scoring de produtos |
+| `creative` | Geração e versionamento de criativos |
+| `publishing` | Postagem multi-canal + agendamento |
+| `tracking` | Pixel próprio + ingestão de eventos |
+| `analytics` | Métricas, classificação, modelos preditivos |
+| `optimizer` | Loop OODA, decisões e execução |
+| `compliance` | Risk scoring, listas de policy |
+| `finance` | Cofre de orçamento, ROI consolidado |
+| `governance` | Auditoria, aprovações, RBAC operacional |
+| `bootstrap` | Channel Bootstrap (criação de canais) |
+| `messaging` | WhatsApp/Telegram funnel |
+| `community` | Grupos, fóruns, comunidades |
+| `launch` | Launch Mode (Fórmula de Lançamento) |
+| `integrations` | Cofre de credenciais + clientes de APIs externas |
+| `notifications` | E-mail, push, in-app |
+
+### 2.3 Anti-Padrões Proibidos
+- Acesso direto a Prisma fora de `infrastructure/`.
+- Lógica de negócio em handlers/controllers.
+- "God services" (qualquer service acima de ~300 linhas é refatorado).
+- Estado mutável compartilhado entre camadas.
+- Usar `any`/`unknown` sem narrowing — preferir tipagem precisa via Zod.
+- Comentários redundantes que duplicam o nome do identificador.
+
+### 2.4 Reaproveitamento (DRY com critério)
+- **Design System** centralizado em `packages/ui` (monorepo) ou `src/components/ui/` (single-repo).
+- **Use Cases** são compostos por **Domain Services** reutilizáveis.
+- **Mappers** (DTO ↔ Domain ↔ Persistence) ficam em `infrastructure/mappers/`.
+- **HOFs/policies** comuns (paginação, ordenação, filtros) ficam em `shared/`.
+- Aceitar 3+ duplicações **antes** de abstrair (regra da terceira ocorrência).
+
+---
+
+## 3. Estrutura do Repositório
+
+### 3.1 Monorepo (escolha padrão)
+Usar **Turborepo + pnpm workspaces** já no MVP — facilita extrair workers e SDK do pixel.
+
+```
+nextface/
+├── apps/
+│   ├── web/                          # Next.js (front + BFF)
+│   ├── worker/                       # Node service de workers BullMQ
+│   ├── pixel-edge/                   # Cloudflare Worker do pixel
+│   └── docs/                         # (opcional) site de docs
+├── packages/
+│   ├── domain/                       # Entidades, VOs, Domain Services (puro TS)
+│   ├── application/                  # Use Cases, ports (interfaces)
+│   ├── infrastructure/               # Adapters: Prisma, Redis, API clients
+│   ├── ui/                           # Design System (RSC-friendly)
+│   ├── config/                       # tsconfig, eslint, prettier, tailwind base
+│   ├── schemas/                      # Zod schemas compartilhados (DTOs)
+│   ├── sdk/                          # SDK do pixel JS + types públicos
+│   └── testing/                      # fixtures, factories, test utilities
+├── prisma/
+│   ├── schema.prisma
+│   ├── migrations/
+│   └── seed.ts
+├── docker-compose.yml
+├── turbo.json
+├── pnpm-workspace.yaml
+├── .env.template
+├── CREDENCIAIS.md
+├── lnogocios.prd
+└── tecnico.prd
+```
+
+### 3.2 Estrutura interna de `apps/web/`
+```
+apps/web/
+└── src/
+    ├── app/
+    │   ├── (marketing)/              # Páginas públicas (landing, pricing)
+    │   ├── (auth)/                   # login, signup, MFA
+    │   ├── (app)/                    # Área autenticada (multi-tenant)
+    │   │   ├── layout.tsx
+    │   │   ├── dashboard/
+    │   │   ├── discovery/
+    │   │   ├── creatives/
+    │   │   ├── campaigns/
+    │   │   ├── channels/             # Channel Bootstrap UI
+    │   │   ├── messaging/
+    │   │   ├── community/
+    │   │   ├── launches/
+    │   │   ├── analytics/
+    │   │   ├── integrations/         # conectar credenciais
+    │   │   └── settings/
+    │   └── api/
+    │       ├── auth/[...nextauth]/
+    │       ├── webhooks/             # callbacks Meta/TikTok/Hotmart/Kiwify
+    │       ├── pixel/                # ingestão (proxy para edge)
+    │       ├── rpc/                  # se usar tRPC
+    │       └── trigger/              # gatilhos internos do worker
+    ├── views/                        # ViewModels e screen wrappers MVVM
+    ├── hooks/
+    ├── lib/                          # client SDKs configurados, fetcher
+    └── styles/
+```
+
+### 3.3 Estrutura interna de cada bounded context
+Padrão consistente em `packages/domain`, `packages/application` e `packages/infrastructure`:
+
+```
+packages/domain/src/creative/
+├── entities/
+│   ├── Creative.ts
+│   └── CreativeVariant.ts
+├── value-objects/
+│   ├── HookType.ts
+│   ├── AspectRatio.ts
+│   └── RiskScore.ts
+├── events/
+│   └── CreativePublished.ts
+├── policies/
+│   └── CreativeRiskPolicy.ts
+└── services/
+    └── CreativeLineageService.ts
+
+packages/application/src/creative/
+├── ports/
+│   ├── CreativeRepository.ts        # interface
+│   ├── AiGenerationGateway.ts
+│   └── ComplianceCheckerGateway.ts
+├── use-cases/
+│   ├── GenerateCreativeUseCase.ts
+│   ├── MutateCreativeUseCase.ts
+│   └── ApproveCreativeUseCase.ts
+└── dto/
+
+packages/infrastructure/src/creative/
+├── persistence/
+│   └── PrismaCreativeRepository.ts
+├── gateways/
+│   ├── ClaudeAiGenerationGateway.ts
+│   └── ComplianceCheckerHttpGateway.ts
+└── mappers/
+    └── CreativeMapper.ts
+```
+
+---
+
+## 4. Padrão MVVM no Presentation Layer
+
+### 4.1 Definição
+- **View** (`.tsx`): apenas markup + binding de estado. Pode ser RSC (server) ou CSR (client).
+- **ViewModel** (`useXxxViewModel.ts`): hook que orquestra dados + ações; isola a View de detalhes de fetching/mutation.
+- **Model**: tipos de domínio importados de `@nextface/domain`.
+
+### 4.2 Exemplo de contrato
+```ts
+// views/creatives/CreativesListView.tsx (RSC + client island)
+import { useCreativesListViewModel } from './useCreativesListViewModel';
+
+export function CreativesListView({ orgId }: { orgId: string }) {
+  const vm = useCreativesListViewModel({ orgId });
+  return (
+    <CreativesTable
+      items={vm.items}
+      isLoading={vm.isLoading}
+      onMutate={vm.mutate}
+      onKill={vm.kill}
+    />
+  );
+}
+```
+
+```ts
+// views/creatives/useCreativesListViewModel.ts
+export function useCreativesListViewModel({ orgId }: { orgId: string }) {
+  const query = useQuery({
+    queryKey: ['creatives', orgId],
+    queryFn: () => api.creatives.list({ orgId }),
+  });
+  const mutateMutation = useMutation({
+    mutationFn: (input: MutateCreativeInput) => api.creatives.mutate(input),
+  });
+  return {
+    items: query.data ?? [],
+    isLoading: query.isLoading,
+    mutate: mutateMutation.mutateAsync,
+    kill: (id: string) => api.creatives.kill({ id }),
+  };
+}
+```
+
+### 4.3 Regras de MVVM no NextFace
+- ViewModels **nunca** chamam Prisma direto — sempre via cliente HTTP/tRPC do BFF.
+- Views **não** importam de `@nextface/infrastructure`.
+- Cada tela tem **um** ViewModel principal (não fragmentado em 5 hooks soltos).
+- Estado derivado fica memoizado dentro do ViewModel; nunca cálculo pesado em render.
+- Server Components consomem use cases via `services` (BFF interno tipado), não via fetch HTTP.
+
+---
+
+## 5. Backend for Frontend (BFF)
+
+### 5.1 Princípios
+- Cada rota BFF é um **adaptador fino** sobre Use Cases — sem lógica de negócio.
+- Validação de input com **Zod** (`@nextface/schemas`) na borda; output também tipado.
+- Idempotência via header `Idempotency-Key` em mutations que envolvem custo (publicar, escalar).
+- Autenticação obrigatória em todas as rotas exceto `(marketing)` e `/api/pixel`.
+
+### 5.2 Padrão de Route Handler
+```ts
+// app/api/creatives/[id]/mutate/route.ts
+export async function POST(req: Request, ctx: { params: { id: string } }) {
+  const session = await requireSession();
+  const input = MutateCreativeInputSchema.parse(await req.json());
+  const idempotencyKey = req.headers.get('Idempotency-Key') ?? undefined;
+
+  const result = await container
+    .get(MutateCreativeUseCase)
+    .execute({
+      ...input,
+      creativeId: ctx.params.id,
+      orgId: session.orgId,
+      actorId: session.userId,
+      idempotencyKey,
+    });
+
+  return Response.json(result);
+}
+```
+
+### 5.3 Convenções de API HTTP
+- Prefixo: `/api/v1/...` (versionado mesmo em monorepo).
+- Verbos: `GET` (listar/buscar), `POST` (criar/ação), `PATCH` (atualizar campos), `DELETE` (remover/arquivar).
+- Erros padronizados:
+  ```json
+  { "error": { "code": "creative.compliance_failed", "message": "...", "details": {...} } }
+  ```
+- Lista paginada: cursor-based (`?cursor=...&limit=50`) preferida a offset.
+
+### 5.4 (Opcional) tRPC
+Para fluxos internos de admin/console pode-se usar tRPC v11 (`app/api/trpc/[trpc]/route.ts`). REST permanece como API pública (webhooks externos, pixel, SDK).
+
+### 5.5 Webhooks Recebidos
+Estrutura: `app/api/webhooks/{provider}/route.ts`
+- Verificação de assinatura **obrigatória** (HMAC/Meta `X-Hub-Signature-256`, Hotmart `Hottok`, Kiwify signature etc.).
+- Resposta **rápida** (≤ 3s) — apenas enqueua para worker processar.
+- Tabela `webhook_event` armazena payload bruto + status (`received|processing|done|failed`).
+
+---
+
+## 6. Modelo de Dados (Prisma)
+
+Schema dividido em arquivos `.prisma` por bounded context com `prisma-multifile` ou `prisma-import`; alternativa simples é um único `schema.prisma` bem comentado por seções.
+
+### 6.1 Convenções
+- IDs: `cuid2` (`@id @default(cuid())` no Prisma — substituir por `cuid2` via helper se necessário).
+- Campos comuns: `createdAt`, `updatedAt`, `deletedAt` (soft delete onde fizer sentido).
+- Multi-tenant: **toda tabela operacional** carrega `orgId` indexado.
+- Money: `Decimal(18,4)` para valores monetários; `currency` em ISO-4217.
+- Enums fortes (não strings livres) onde houver conjunto fechado.
+- Índices compostos por `(orgId, ...)` em consultas hot.
+
+### 6.2 Esqueleto inicial (resumo das entidades-chave)
+
+```prisma
+// ============================================================================
+// IAM
+// ============================================================================
+model Organization {
+  id          String   @id @default(cuid())
+  name        String
+  plan        Plan     @default(STARTER)
+  createdAt   DateTime @default(now())
+  members     Membership[]
+  integrations Integration[]
+  // ...
+}
+
+enum Plan { STARTER PRO AGENCY ENTERPRISE }
+
+model User {
+  id        String @id @default(cuid())
+  email     String @unique
+  name      String?
+  memberships Membership[]
+}
+
+model Membership {
+  id     String @id @default(cuid())
+  orgId  String
+  userId String
+  role   Role
+  org    Organization @relation(fields: [orgId], references: [id])
+  user   User         @relation(fields: [userId], references: [id])
+  @@unique([orgId, userId])
+}
+
+enum Role { OWNER ADMIN MANAGER CREATIVE FINANCE VIEWER }
+
+// ============================================================================
+// INTEGRATIONS — Cofre de credenciais
+// ============================================================================
+model Integration {
+  id             String   @id @default(cuid())
+  orgId          String
+  provider       Provider
+  status         IntegrationStatus
+  externalAccountIds String[]            // ad accounts, pages, channels...
+  encryptedCredentials Bytes              // payload selado por KMS envelope
+  scopes         String[]
+  expiresAt      DateTime?
+  lastHealthCheckAt DateTime?
+  lastHealthOk   Boolean   @default(true)
+  org            Organization @relation(fields: [orgId], references: [id])
+  @@index([orgId, provider])
+}
+
+enum Provider { META TIKTOK GOOGLE YOUTUBE WHATSAPP TELEGRAM KIWIFY HOTMART EDUZZ MONETIZZE HEROSPARK TICTO }
+enum IntegrationStatus { CONNECTED DEGRADED EXPIRED REVOKED }
+
+// ============================================================================
+// DISCOVERY
+// ============================================================================
+model Product {
+  id          String   @id @default(cuid())
+  source      Provider
+  externalId  String
+  name        String
+  niche       String
+  hotScore    Decimal  @db.Decimal(5,2)
+  dossier     Json     // estruturado: dores, gatilhos, persona, prova social
+  saturation  Int      // 0..100
+  blocked     Boolean  @default(false)
+  updatedAt   DateTime @updatedAt
+  @@unique([source, externalId])
+}
+
+// ============================================================================
+// CREATIVE
+// ============================================================================
+model Creative {
+  id          String   @id @default(cuid())
+  orgId       String
+  productId   String
+  parentId    String?  // linhagem (DNA criativo)
+  version     String
+  format      CreativeFormat
+  framework   CreativeFramework
+  hookType    HookType
+  angle       String
+  assets      Json     // { videoUrl, thumbnailUrl, copies: {primary, headline, cta} }
+  seed        String   // determinismo
+  metadata    Json
+  riskScore   Decimal? @db.Decimal(5,2)
+  status      CreativeStatus
+  createdAt   DateTime @default(now())
+  parent      Creative?  @relation("Lineage", fields: [parentId], references: [id])
+  children    Creative[] @relation("Lineage")
+  @@index([orgId, status])
+  @@index([productId])
+}
+
+enum CreativeFormat { COPY IMAGE VIDEO_SHORT CAROUSEL VSL }
+enum CreativeFramework { AIDA PAS BAB FOUR_P FAB }
+enum HookType { COGNITIVE_DISSONANCE QUESTION BOLD CONTRARIAN BEFORE_AFTER FORBIDDEN PATTERN_INTERRUPT }
+enum CreativeStatus { DRAFT PENDING_REVIEW APPROVED REJECTED PUBLISHED ARCHIVED }
+
+// ============================================================================
+// PUBLISHING
+// ============================================================================
+model Publication {
+  id          String   @id @default(cuid())
+  orgId       String
+  creativeId  String
+  channel     Channel
+  externalId  String?  // id no provedor
+  status      PublicationStatus
+  scheduledAt DateTime?
+  publishedAt DateTime?
+  url         String?
+  metadata    Json
+  @@index([orgId, channel, status])
+}
+
+enum Channel {
+  META_FEED META_REELS META_STORIES META_ADS
+  IG_FEED IG_REELS IG_STORIES
+  TIKTOK_ORGANIC TIKTOK_ADS
+  YOUTUBE_SHORTS YOUTUBE_LONG YOUTUBE_ADS
+  WHATSAPP TELEGRAM
+  FACEBOOK_GROUP
+}
+enum PublicationStatus { QUEUED PUBLISHING PUBLISHED FAILED PAUSED }
+
+// ============================================================================
+// CAMPAIGNS / OPTIMIZER
+// ============================================================================
+model Campaign {
+  id          String @id @default(cuid())
+  orgId       String
+  channel     Channel
+  externalId  String?
+  name        String
+  status      CampaignStatus
+  budgetDaily Decimal @db.Decimal(18,4)
+  objective   String
+  metadata    Json
+  adSets      AdSet[]
+}
+enum CampaignStatus { ACTIVE PAUSED ARCHIVED }
+
+model AdSet {
+  id          String @id @default(cuid())
+  campaignId  String
+  externalId  String?
+  name        String
+  targeting   Json
+  campaign    Campaign @relation(fields: [campaignId], references: [id])
+  ads         Ad[]
+}
+
+model Ad {
+  id           String @id @default(cuid())
+  adSetId      String
+  creativeId   String
+  externalId   String?
+  status       String
+  metricsDaily AdMetric[]
+  adSet        AdSet    @relation(fields: [adSetId], references: [id])
+  creative     Creative @relation(fields: [creativeId], references: [id])
+}
+
+model AdMetric {
+  id        String   @id @default(cuid())
+  adId      String
+  date      DateTime
+  spend     Decimal  @db.Decimal(18,4)
+  impressions Int
+  clicks    Int
+  reach     Int
+  frequency Decimal  @db.Decimal(8,4)
+  conversions Int
+  revenue   Decimal  @db.Decimal(18,4)
+  raw       Json     // payload da plataforma
+  @@unique([adId, date])
+  @@index([date])
+}
+
+model OptimizerAction {
+  id           String   @id @default(cuid())
+  orgId        String
+  type         OptimizerActionType
+  targetType   String   // "creative" | "campaign" | "adset" | "ad"
+  targetId     String
+  payloadBefore Json
+  payloadAfter  Json
+  reason       String
+  reversible   Boolean
+  executedAt   DateTime @default(now())
+  reversedAt   DateTime?
+  @@index([orgId, executedAt])
+}
+enum OptimizerActionType { KILL SCALE DUPLICATE MUTATE REPOST REPLY PARTICIPATE ROTATE REFRESH_FORCED BUDGET_REBALANCE PAUSE_NIGHT ENRICH_CAPI }
+
+// ============================================================================
+// TRACKING (Pixel + Atribuição)
+// ============================================================================
+model PixelEvent {
+  id          String   @id @default(cuid())
+  orgId       String
+  eventName   String
+  eventId     String   // dedupe
+  occurredAt  DateTime
+  receivedAt  DateTime @default(now())
+  url         String?
+  fbp         String?
+  fbc         String?
+  ipHash      String?
+  uaHash      String?
+  emailHash   String?
+  phoneHash   String?
+  externalId  String?
+  value       Decimal? @db.Decimal(18,4)
+  currency    String?
+  creativeId  String?
+  publicationId String?
+  raw         Json
+  @@unique([orgId, eventId])
+  @@index([orgId, occurredAt])
+}
+
+// ============================================================================
+// CHANNEL BOOTSTRAP
+// ============================================================================
+model Channel {
+  id          String   @id @default(cuid())
+  orgId       String
+  provider    Provider
+  externalId  String?
+  handle      String
+  brandDna    Json
+  status      ChannelStatus
+  phase       ChannelPhase
+  createdAt   DateTime @default(now())
+}
+enum ChannelStatus { PLANNED PROVISIONING ACTIVE WARMING SHADOWBAN_SUSPECT BANNED }
+enum ChannelPhase { IGNITION AUTHORITY CONVERSION MATURE }
+
+// ============================================================================
+// MESSAGING & COMMUNITY
+// ============================================================================
+model MessagingFlow {
+  id      String @id @default(cuid())
+  orgId   String
+  provider Provider // WHATSAPP | TELEGRAM
+  name    String
+  steps   Json     // sequência de mensagens / branching
+  metrics Json
+}
+
+model CommunityGroup {
+  id        String @id @default(cuid())
+  orgId     String
+  provider  Provider
+  externalId String
+  name      String
+  qualityScore Decimal @db.Decimal(5,2)
+  rules     Json
+  status    String
+}
+
+// ============================================================================
+// LAUNCH MODE
+// ============================================================================
+model Launch {
+  id        String @id @default(cuid())
+  orgId     String
+  productId String
+  templateKey String // "express_7" | "standard_14" | "long_21"
+  startsAt  DateTime
+  cartOpenAt DateTime
+  cartCloseAt DateTime
+  status    LaunchStatus
+  metrics   Json
+}
+enum LaunchStatus { PLANNED PRELAUNCH WARMUP CART_OPEN CART_CLOSED RETROSPECTIVE }
+
+// ============================================================================
+// GOVERNANCE
+// ============================================================================
+model AuditLog {
+  id        String   @id @default(cuid())
+  orgId     String
+  actorType String   // "user" | "ai"
+  actorId   String
+  action    String
+  resourceType String
+  resourceId   String?
+  before    Json?
+  after     Json?
+  reason    String?
+  createdAt DateTime @default(now())
+  @@index([orgId, createdAt])
+}
+```
+
+### 6.3 Vector store (pgvector)
+- Tabelas separadas para evitar inflar entidades principais:
+  - `creative_embedding(creative_id PK FK, vector vector(1536), kind text)`
+  - `product_dossier_embedding(product_id PK FK, vector vector(1536))`
+- Índices `ivfflat` ou `hnsw` (Postgres 16 + `pgvector` 0.7+).
+
+### 6.4 Estratégia de migrações
+- `prisma migrate dev` em dev; `prisma migrate deploy` no CI/CD de produção.
+- Toda mudança breaking entra em **2 migrations** (compatível → cutover) para evitar downtime.
+- Seed por ambiente (`prisma/seed.ts` lendo `process.env.SEED_PROFILE`).
+
+---
+
+## 7. Camadas, Use Cases e Dependency Injection
+
+### 7.1 Domain Layer (puro)
+- Apenas TS — sem imports de frameworks/IO.
+- Entidades com construtores privados + factories (`Creative.create(props)`).
+- Invariantes encapsuladas no construtor.
+- Value Objects imutáveis (`RiskScore`, `HotScore`, `AspectRatio`).
+- Eventos de domínio para side-effects (`CreativePublished`, `BudgetCapBreached`).
+
+### 7.2 Application Layer
+- **Ports** (interfaces) descrevem dependências externas.
+- **Use Cases** orquestram regras e disparam side-effects via ports.
+- Cada Use Case: 1 método `execute(input): Promise<output>`; input/output tipados com Zod schemas exportados.
+
+```ts
+export class GenerateCreativeUseCase {
+  constructor(
+    private readonly creatives: CreativeRepository,
+    private readonly ai: AiGenerationGateway,
+    private readonly compliance: ComplianceCheckerGateway,
+    private readonly events: DomainEventPublisher,
+  ) {}
+
+  async execute(input: GenerateCreativeInput): Promise<GenerateCreativeOutput> {
+    // valida, monta dossier, chama AI, salva, dispara evento
+  }
+}
+```
+
+### 7.3 Infrastructure Layer
+- Implementações concretas dos ports: `PrismaCreativeRepository`, `ClaudeAiGenerationGateway`, `MetaAdsClient`, `TikTokClient`, `YouTubeClient`, `WhatsAppCloudApiClient`, etc.
+- Cada gateway externo encapsula:
+  - retry/backoff exponencial (com jitter)
+  - circuit breaker (resilience4j-like via lib `cockatiel` ou similar)
+  - rate limiter por provedor
+  - logging estruturado de request/response (com PII mascarada)
+  - métricas (success rate, latência p50/p95/p99)
+
+### 7.4 Composition Root
+- Um por entrypoint: `apps/web/src/lib/container.ts` (BFF) e `apps/worker/src/container.ts` (workers).
+- Bibliotecas: **tsyringe** ou container manual (Map). Preferência: container manual no MVP (menos magia).
+
+```ts
+export function buildContainer(deps?: Partial<Dependencies>) {
+  const prisma = deps?.prisma ?? new PrismaClient();
+  const redis  = deps?.redis  ?? new Redis(env.REDIS_URL);
+  // ...
+  const creativeRepo = new PrismaCreativeRepository(prisma);
+  const aiGateway    = new ClaudeAiGenerationGateway(env.ANTHROPIC_API_KEY);
+  return {
+    generateCreative: new GenerateCreativeUseCase(creativeRepo, aiGateway, ...),
+    // demais use cases
+  };
+}
+```
+
+---
+
+## 8. Filas, Workers e Schedulers
+
+### 8.1 BullMQ Setup
+- Filas dedicadas por domínio:
+  - `creative.generate`
+  - `publishing.publish`
+  - `publishing.refresh-tokens`
+  - `tracking.event-ingest`
+  - `analytics.recompute-metrics`
+  - `optimizer.ooda-loop`
+  - `optimizer.execute-action`
+  - `messaging.send`
+  - `community.scan-groups`
+  - `bootstrap.warm-up`
+- Cada fila com **DLQ** (dead letter queue) e retry policy específico.
+
+### 8.2 Padrão de Worker
+```ts
+const worker = new Worker(
+  'optimizer.ooda-loop',
+  async (job) => {
+    const { orgId, campaignId } = job.data;
+    await container.runOodaLoop.execute({ orgId, campaignId });
+  },
+  {
+    connection: redis,
+    concurrency: 16,
+    limiter: { max: 100, duration: 60_000 },
+  },
+);
+```
+
+### 8.3 Schedulers (Repeatable Jobs)
+| Job | Frequência | Responsável |
+|-----|-----------|-------------|
+| `optimizer.tick` | a cada 15min | dispara OODA por org/campanha ativa |
+| `discovery.recalc-hotscore` | a cada 6h | reprocessa Hot Score |
+| `integrations.health-check` | a cada 6h | valida tokens |
+| `integrations.refresh-tokens` | a cada 1h | renova tokens próximos de expirar |
+| `analytics.daily-aggregate` | 03:00 BRT | aggregates de métricas diárias |
+| `bootstrap.editorial-publish` | conforme calendário | posta itens agendados |
+| `community.participation-budget` | diário | calcula cota de comentários/posts por grupo |
+
+### 8.4 Idempotência
+- Toda mensagem carrega `messageId` (cuid2).
+- Worker grava `processed_message(messageId)` antes de executar; duplicatas viram no-op.
+- Ações que tocam APIs externas usam `Idempotency-Key` quando o provedor suporta (Meta Marketing API suporta).
+
+---
+
+## 9. Integrações Externas (Adapters)
+
+### 9.1 Princípios
+- **1 cliente por provedor** com interface estável em `@nextface/application/ports`.
+- **Versionamento de API congelado** por cliente (`META_API_VERSION=v22.0`).
+- **Mocks**: cada cliente vem com um par `__mocks__` para testes (resposta deterministica).
+- **Replay de payloads**: webhooks brutos são salvos por 30 dias para replay em bugs.
+
+### 9.2 Meta (Facebook + Instagram + WhatsApp)
+- SDK: `facebook-nodejs-business-sdk` opcional; preferimos chamadas HTTP diretas com `undici` + tipos próprios para evitar boilerplate do SDK.
+- Endpoints relevantes:
+  - Ads: `/{ad-account-id}/campaigns`, `/{ad-account-id}/adsets`, `/{ad-account-id}/ads`, `/{ad-account-id}/insights`.
+  - Pages: `/{page-id}/feed`, `/{page-id}/videos`.
+  - Instagram: `/{ig-user-id}/media` + `/{ig-user-id}/media_publish` (container + publish).
+  - WhatsApp Cloud: `/{phone-number-id}/messages`, templates `/{waba-id}/message_templates`.
+  - Pixel CAPI: `/{pixel-id}/events`.
+- **EMQ**: enviar `em` (email hash), `ph` (phone), `fbp`, `fbc`, `client_ip_address`, `client_user_agent`, `external_id` em **todo** evento server-side.
+
+### 9.3 TikTok for Business
+- Marketing API v1.3 (ou versão atual). Endpoints chave: `/campaign/create`, `/adgroup/create`, `/ad/create`, `/reports/integrated/get`.
+- Content Posting API: `/video/upload`, `/video/publish`.
+- Pixel/Events: `/pixel/track`.
+
+### 9.4 Google (YouTube + Ads)
+- `googleapis` SDK oficial.
+- Upload resumable de vídeos: stream multipart.
+- Quotas: monitorar (YouTube Data API = 10.000 unidades/dia padrão; upload = 1.600 unidades).
+
+### 9.5 Telegram
+- `node-telegram-bot-api` ou chamadas HTTP diretas; webhook em vez de polling em produção.
+
+### 9.6 Plataformas de venda
+- Kiwify, Hotmart, Eduzz, Monetizze, HeroSpark, Ticto: webhook de venda (assinado) + API REST para consulta de produtos e estatísticas.
+- Cada uma com adapter próprio implementando `SalesPlatformGateway` (interface unificada de "lista produtos", "lista vendas", "trial?", etc.).
+
+### 9.7 IA (Claude / GPT / HeyGen / ElevenLabs)
+- Wrappers em `@nextface/infrastructure/ai/`.
+- Custos por chamada são logados em tabela `ai_usage` (model, tokens_in, tokens_out, cost_usd) — alimenta cobrança extra de token.
+
+### 9.8 Resiliência
+- **Retry policy padrão**: 3 tentativas, backoff exponencial (1s, 4s, 16s) + jitter ±25%.
+- **Circuit breaker**: abre após 5 falhas em 30s; half-open após 60s.
+- **Timeouts**: 30s para chamadas síncronas; 120s para uploads.
+- **Bulkhead**: pool de no máx 20 conexões concorrentes por provedor.
+
+---
+
+## 10. Pixel Próprio (NextFace Pixel)
+
+### 10.1 Cliente JS (`packages/sdk/pixel/`)
+- Bundle final < 8 kB gzipped.
+- API:
+  ```js
+  nf('init', { pixelId: 'pxl_xxx' });
+  nf('track', 'page_view');
+  nf('track', 'purchase', { value: 197, currency: 'BRL', email: 'h@x' });
+  ```
+- Hash de PII (SHA-256) **no cliente** antes de enviar.
+- Captura automática de UTM, `fbclid`, referrer, viewport.
+
+### 10.2 Ingestão (`apps/pixel-edge/`)
+- Cloudflare Worker (latência baixa).
+- Validação leve do schema → enqueue em fila `tracking.event-ingest` (via Upstash Redis ou HTTPS para worker).
+- Resposta 1×1 pixel GIF ou 204 No Content.
+
+### 10.3 Processamento
+- Worker recebe, deduplica por `event_id`, persiste em `PixelEvent`.
+- Forward para Meta CAPI / TikTok Events / Google Enhanced (conforme integrações ativas) com EMQ enriquecido.
+
+### 10.4 Atribuição
+- Job diário: roda modelo data-driven multi-touch sobre janela 7d clique / 1d view.
+- Saída: tabela `attribution_assignment(event_id, channel, weight)`.
+
+---
+
+## 11. Segurança
+
+### 11.1 Cofre de Credenciais
+- **Envelope encryption**: chave de dados (DEK) por organização, encriptada por chave mestra (KMS — AWS KMS, GCP KMS ou Cloudflare).
+- Tokens nunca em log; logs estruturados redactam campos sensíveis.
+- Rotação automática agendada (90 dias).
+
+### 11.2 Webhooks
+- Assinatura HMAC obrigatória; rejeitar requisições sem header.
+- Replay window: ignorar eventos > 5min de defasagem (relógio sincronizado via NTP).
+
+### 11.3 LGPD/GDPR
+- Pipeline de **direito ao esquecimento**: endpoint `/api/v1/account/forget` agenda anonimização em ≤30 dias.
+- DPA tracker: lista de subprocessadores (Meta, Google, TikTok, OpenAI, Anthropic, HeyGen, etc.).
+- Consent record: tabela `consent_record(orgId, type, version, acceptedAt)`.
+
+### 11.4 RBAC
+- Middleware `requireRole(roles[])` aplicado em handlers/use cases.
+- Permissões finas via `casl` ou tabela `policy(role, action, resource)`.
+
+### 11.5 Hardening Geral
+- CSP estrito; SRI nos scripts externos.
+- Rate limit por IP + por org em rotas sensíveis (Cloudflare + middleware).
+- 2FA obrigatório para roles `OWNER` e `ADMIN`.
+- Audit log de toda escrita em integrações.
+
+### 11.6 Modelagem de Ameaças (resumida)
+- **Token leak** → mitigação: criptografia + rotação + revogação 1-clique.
+- **Webhook spoofing** → assinatura + IP allowlist quando disponível.
+- **AI prompt injection** → sanitização de inputs do usuário; system prompt fixo; checagens em saída antes de publicar.
+- **Replay de pagamento** → idempotency keys obrigatórias.
+
+---
+
+## 12. AI Pipelines (Detalhe Técnico)
+
+### 12.1 Creative Forge — Pipeline
+1. **Briefing**: monta contexto a partir de `Product.dossier` + `Channel.brandDna` + histórico de winners (RAG sobre `creative_embedding`).
+2. **Estrutura por LLM**: gera "ângulo" + "framework" + "hook_type" via Claude com structured output (Zod schema).
+3. **Copy**: 4 variantes (A/B/C/D).
+4. **Asset**:
+   - **Imagem**: provider abstrato → DALL·E 3 ou Flux Pro.
+   - **Vídeo curto**: HeyGen (avatar) ou Veo/Sora wrapper (B-roll) + edição via ffmpeg (legendas dinâmicas).
+   - **Voz**: ElevenLabs (clonada do dono do produto, opt-in) ou voz default.
+5. **Renderização final**: ffmpeg worker (legendas, branding, watermark, exportações por canal).
+6. **Compliance Guard**: chamada ao serviço (LLM com policy prompt + listas).
+7. **Persistência**: `Creative` + assets em S3/R2 + embedding em pgvector.
+
+### 12.2 Observabilidade de IA
+- Tabela `ai_run(id, useCase, model, promptHash, tokensIn, tokensOut, costUsd, durationMs, status)`.
+- Dashboard de custo por org / por use case / por dia.
+- Alertas: custo diário > 80% do orçamento configurado.
+
+### 12.3 Prompt Library
+- Pasta `packages/application/src/_prompts/` com prompts versionados (`v1.json`, `v2.json`).
+- Cada Use Case referencia versão específica para reprodutibilidade.
+
+### 12.4 Determinismo
+- `seed` salvo na entidade Creative para reprocesso.
+- Em modelos não determinísticos, armazenar `runId` do provedor.
+
+---
+
+## 13. Performance, Caching e SSR
+
+### 13.1 Estratégias por rota
+| Rota | Renderização | Cache |
+|------|--------------|-------|
+| `(marketing)/*` | SSG + ISR (revalidate 60min) | Edge cache |
+| `(auth)/*` | SSR dinâmico | Sem cache |
+| `(app)/dashboard` | RSC com streaming | Per-user, 30s revalidate |
+| `(app)/analytics/*` | RSC + suspense | Per-user, sob demanda |
+| `(app)/integrations` | RSC | Per-user, on-mutation revalidate |
+
+### 13.2 Cache de dados
+- TanStack Query no client com `staleTime` calibrado por tipo de dado.
+- Redis cache server-side (TTL 60–300s) para hot reads (discovery list, dashboard topo).
+
+### 13.3 Métricas-alvo
+- **TTFB** p95 ≤ 300ms (Vercel/edge).
+- **Largest Contentful Paint** ≤ 2.0s.
+- **API latency** p95 ≤ 250ms para endpoints não-IA.
+- **Worker throughput** ≥ 500 jobs/seg em cluster mínimo (3 workers).
+
+---
+
+## 14. Observabilidade
+
+### 14.1 Logs
+- Formato: JSON estruturado (`pino`).
+- Correlação: `requestId` propagado via header `X-Request-Id` e em jobs.
+- Níveis: `trace|debug|info|warn|error|fatal`.
+
+### 14.2 Métricas
+- App custom: `nextface_optimizer_ooda_duration_seconds`, `nextface_creative_generation_total`, `nextface_pixel_event_lag_seconds`.
+- Sistema: CPU, memória, fila depth (BullMQ), DB connections.
+
+### 14.3 Traces
+- OpenTelemetry no front (web vitals + RUM) e back (HTTP, DB, IA calls).
+- Sampling 10% padrão; 100% em erro.
+
+### 14.4 Alertas
+- Fila com depth > 1.000 por > 5min.
+- DLQ recebendo mensagens.
+- Health check de integração falhando > 1h.
+- Custo de IA > 80% do cap.
+
+---
+
+## 15. Estratégia de Testes
+
+### 15.1 Pirâmide
+- **Unit** (Vitest): domain + use cases (≥80% cobertura).
+- **Integration** (Vitest + testcontainers Postgres/Redis): repositories, gateways.
+- **Contract tests** (Pact ou snapshot): clientes externos contra mocks fixos.
+- **E2E** (Playwright): jornadas críticas (onboarding, publicar criativo, conectar integração).
+- **Performance** (k6): rotas hot e ingestão de pixel.
+
+### 15.2 Test Doubles
+- Stubs determinísticos para gateways de IA (retornam fixtures versionadas).
+- `InMemoryRepository` por entidade para testes de use case (sem DB).
+
+### 15.3 Fixtures
+- `packages/testing/fixtures/`: dossiês de produto, criativos, métricas — versionados.
+
+### 15.4 Gate de PR
+- Lint + type-check + unit + integration obrigatórios.
+- E2E rodam em smoke ao merge na main.
+
+---
+
+## 16. CI/CD
+
+### 16.1 Pipeline (GitHub Actions)
+1. `install` (pnpm + Turbo cache).
+2. `lint` + `typecheck`.
+3. `test:unit` + `test:integration`.
+4. `build` (Next.js + workers).
+5. `migrate:deploy` (somente prod, gated).
+6. `deploy:web` (Vercel) + `deploy:worker` (Fly.io/Render).
+7. `e2e:smoke` pós-deploy.
+
+### 16.2 Feature Flags
+- Provider: `unleash` self-hosted **ou** `OpenFeature` + provedor escolhido.
+- Flags principais: `enable_real_publishing`, `enable_autonomous_mode`, `enable_launch_mode`, `enable_community_module`.
+
+### 16.3 Releases
+- Versionamento semântico em pacotes do monorepo (`changesets`).
+- Tags `v0.1.0` etc.; changelog automático.
+
+---
+
+## 17. Padrões de Código
+
+### 17.1 Geral
+- TypeScript `strict: true`, `noUncheckedIndexedAccess: true`.
+- ESLint config própria em `packages/config/eslint`.
+- Prettier sem prettier-plugin-tailwind (deixar Tailwind ordenar via ESLint rule).
+- Import alias por workspace (`@nextface/domain`, etc.).
+
+### 17.2 Naming
+- Arquivos: `PascalCase.tsx` para componentes; `camelCase.ts` para utilities/hooks.
+- Use Cases: `<Verb><Noun>UseCase` (`GenerateCreativeUseCase`).
+- Entidades: substantivo singular (`Creative`, `Campaign`).
+- Repositórios: `<Entity>Repository` (port) + `Prisma<Entity>Repository` (adapter).
+
+### 17.3 Comentários
+- **Default: zero comentários** — código autoexplicativo.
+- Exceção: invariante não óbvio, decisão de performance contra-intuitiva, link para issue/PRD.
+- Sem JSDoc redundante (`@param name name`).
+
+### 17.4 Erros
+- Hierarquia `DomainError → BusinessRuleViolation | NotFound | Forbidden | Conflict`.
+- Erros de infra: `IntegrationError` (com `provider`, `code`, `retryable`).
+- Nunca lançar `Error` genérico em domain/application.
+
+### 17.5 Logs
+- Sempre estruturado (`logger.info({ orgId, creativeId, action: 'mutate' }, 'creative mutated')`).
+- Nunca interpolar dados sensíveis em strings.
+
+---
+
+## 18. Plano de Implementação Faseado (Engenharia)
+
+### 18.1 Sprint 0 — Fundação (1 semana)
+- Monorepo Turbo + pnpm.
+- Schemas base (config, ESLint, Prettier, Tailwind).
+- CI bare-bones.
+- Docker compose (Postgres + Redis).
+- Auth.js + Organização + Membership + RBAC mínimo.
+- `IntegrationsModule` (cofre) com Meta OAuth funcional.
+
+### 18.2 Sprint 1 — Discovery + Creative MVP (2 semanas)
+- Schema Prisma: Product, Creative, AuditLog, AiUsage.
+- Use Cases: `IndexProduct`, `ComputeHotScore`, `GenerateCreative` (copy + imagem).
+- UI Discovery (lista de produtos), Creatives (galeria + detalhe).
+- Worker: `creative.generate`.
+
+### 18.3 Sprint 2 — Publishing + Pixel (2 semanas)
+- Use Cases: `PublishToInstagram`, `PublishToFacebookPage`, `PublishToYouTubeShort`.
+- Pixel SDK + edge worker + ingestão.
+- CAPI Meta com EMQ.
+
+### 18.4 Sprint 3 — Optimizer + Analytics (2 semanas)
+- Workers do Optimizer (`tick` 15min).
+- Analytics descritivo + classificador (Winner/Loser/etc.).
+- Ações: KILL, SCALE, ROTATE, REFRESH_FORCED.
+
+### 18.5 Sprint 4 — Channel Bootstrap + Messaging (2 semanas)
+- Channel Bootstrap v1 (IG, FB Page, YouTube com wizard guiado).
+- WhatsApp Cloud API conectado + template básico + bot init.
+
+### 18.6 Sprint 5 — Compliance + Finance + Hardening (1 semana)
+- Compliance Guard service.
+- Cofre de orçamento + ROI consolidado.
+- Hardening (rate limit, CSP, audit log completo).
+
+### 18.7 Sprint 6 — Launch Mode + Community (2 semanas)
+- Launch Mode templates 7/14/21.
+- Community: mapeamento e participation rule (FB Groups, Telegram).
+
+### 18.8 v2 — Pós-MVP
+- TikTok end-to-end, Modelo preditivo, Modo Soberano, Channel Fleet, Google Ads.
+
+---
+
+## 19. Critérios de Aceite Técnico do MVP
+
+1. Onboarding completo (signup → conectar Meta + WhatsApp + YouTube + Kiwify) em ≤ 30min de fluxo.
+2. Gerar criativo (copy + imagem) em ≤ 60s p95 e publicar no Instagram em ≤ 5min p95.
+3. Pixel próprio capturando 100% dos eventos esperados em página de teste.
+4. CAPI Meta com EMQ médio ≥ 8.0.
+5. Optimizer executando ciclo OODA a cada 15min sem perda de tick por 24h.
+6. Health check de integrações cobrindo 100% das integrações conectadas.
+7. Cobertura unitária ≥ 80% no domain + application.
+8. P95 das principais rotas BFF ≤ 250ms.
+9. Trail de auditoria registrando 100% das ações com escrita.
+10. Capaz de revogar todas as integrações com 1 clique (kill switch).
+
+---
+
+## 20. Riscos Técnicos e Mitigações
+
+| Risco | Mitigação |
+|-------|-----------|
+| Quotas Meta/Google/TikTok | Pool de tokens por org + monitor de quota + backpressure |
+| Latência de geração de vídeo (>2min) | Filas dedicadas + jobs assíncronos + UX otimista |
+| Custo de IA explodindo | Limites por org/plano + cache agressivo de gerações similares (embedding-near-dup) |
+| Vendor lock-in (Vercel/Neon) | Stack 100% portável; abstrair edge runtime |
+| Atribuição imprecisa pós-iOS | Dual setup CAPI + Pixel + EMQ alto + janela 7d/1d |
+| Banimento de App Meta no review | Iniciar processo de App Review cedo; manter 2 apps (dev/prod) |
+| Mudança breaking nos SDKs | Versionamento congelado + testes de contrato semanais |
+
+---
+
+## 21. Documentação para Devs
+
+### 21.1 Estrutura
+- `README.md` raiz: visão + setup local.
+- `CONTRIBUTING.md`: padrões de PR.
+- `docs/architecture/`: ADRs (Architecture Decision Records) numerados.
+- `docs/runbook/`: procedimentos operacionais (rotacionar token, recriar pixel, recuperar webhook).
+
+### 21.2 ADRs iniciais a escrever
+- ADR-001: Monorepo Turborepo + pnpm.
+- ADR-002: Next.js App Router + RSC.
+- ADR-003: Prisma + Postgres + pgvector.
+- ADR-004: BullMQ para filas (vs Inngest/Trigger.dev).
+- ADR-005: Cofre de credenciais via envelope encryption.
+- ADR-006: Pixel próprio em Cloudflare Worker.
+- ADR-007: tRPC opcional em rotas internas.
+- ADR-008: Não usar microsserviços no MVP.
+
+---
+
+## 22. Saída deste PRD Técnico
+
+Este documento é a referência única para iniciar a implementação. Próximas entregas esperadas:
+1. **Sprint 0 deliverable**: repositório `nextface/` provisionado conforme §3, com `apps/web`, `apps/worker`, `packages/*` esqueletos, CI verde, docker-compose ok.
+2. **Esquema Prisma inicial**: aplicar §6.2 (geração das migrations).
+3. **Container de DI**: `apps/web/src/lib/container.ts` mínimo (auth + integrations).
+4. **Primeiro use case de ponta a ponta**: `ConnectMetaIntegration` (OAuth → token → health check → persistência criptografada).
+
+> Sempre que houver desvio do contrato deste PRD, abrir ADR justificando antes de mergear.

@@ -1,0 +1,13 @@
+{
+  "extends": "@nextface/config/typescript/node",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@nextface/domain": ["../../packages/domain/src"],
+      "@nextface/application": ["../../packages/application/src"],
+      "@nextface/schemas": ["../../packages/schemas/src"]
+    }
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

@@ -1,0 +1,686 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  directUrl  = env("DIRECT_URL")           // Neon: connection pooler (DATABASE_URL) + direct URL para migrations
+  extensions = [pgvector(map: "vector"), pg_trgm, citext]
+}
+
+// ============================================================================
+// IAM
+// ============================================================================
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  plan      Plan     @default(STARTER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members      Membership[]
+  integrations Integration[]
+  creatives    Creative[]
+  campaigns    Campaign[]
+  products     OrganizationProduct[]
+  channels     SocialChannel[]
+  launches     Launch[]
+  flows        MessagingFlow[]
+  groups       CommunityGroup[]
+  auditLogs    AuditLog[]
+  aiUsages     AiUsage[]
+  budgetCaps   BudgetCap[]
+}
+
+enum Plan {
+  STARTER
+  PRO
+  AGENCY
+  ENTERPRISE
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String?
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  accounts    Account[]
+  sessions    Session[]
+  memberships Membership[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Membership {
+  id     String @id @default(cuid())
+  orgId  String
+  userId String
+  role   Role   @default(VIEWER)
+
+  org  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, userId])
+  @@index([orgId])
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  MANAGER
+  CREATIVE
+  FINANCE
+  VIEWER
+}
+
+// ============================================================================
+// INTEGRATIONS
+// ============================================================================
+
+model Integration {
+  id                   String            @id @default(cuid())
+  orgId                String
+  provider             Provider
+  status               IntegrationStatus @default(CONNECTED)
+  externalAccountIds   String[]
+  encryptedCredentials Bytes
+  scopes               String[]
+  expiresAt            DateTime?
+  lastHealthCheckAt    DateTime?
+  lastHealthOk         Boolean           @default(true)
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, provider])
+  @@index([orgId, provider])
+}
+
+enum Provider {
+  META
+  TIKTOK
+  GOOGLE
+  YOUTUBE
+  WHATSAPP
+  TELEGRAM
+  KIWIFY
+  HOTMART
+  EDUZZ
+  MONETIZZE
+  HEROSPARK
+  TICTO
+}
+
+enum IntegrationStatus {
+  CONNECTED
+  DEGRADED
+  EXPIRED
+  REVOKED
+}
+
+// ============================================================================
+// DISCOVERY
+// ============================================================================
+
+model Product {
+  id         String   @id @default(cuid())
+  source     Provider
+  externalId String
+  name       String
+  niche      String
+  hotScore   Decimal  @default(0) @db.Decimal(5, 2)
+  dossier    Json
+  saturation Int      @default(0)
+  blocked    Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  orgs      OrganizationProduct[]
+  creatives Creative[]
+
+  embedding ProductEmbedding?
+
+  @@unique([source, externalId])
+  @@index([niche, hotScore(sort: Desc)])
+}
+
+model OrganizationProduct {
+  orgId     String
+  productId String
+  pinnedAt  DateTime @default(now())
+
+  org     Organization @relation(fields: [orgId], references: [id])
+  product Product      @relation(fields: [productId], references: [id])
+
+  @@id([orgId, productId])
+}
+
+// ============================================================================
+// CREATIVE
+// ============================================================================
+
+model Creative {
+  id        String          @id @default(cuid())
+  orgId     String
+  productId String
+  parentId  String?
+  version   String          @default("1.0")
+  format    CreativeFormat
+  framework CreativeFramework
+  hookType  HookType
+  angle     String
+  assets    Json
+  seed      String
+  metadata  Json            @default("{}")
+  riskScore Decimal?        @db.Decimal(5, 2)
+  status    CreativeStatus  @default(DRAFT)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  org          Organization @relation(fields: [orgId], references: [id])
+  product      Product      @relation(fields: [productId], references: [id])
+  parent       Creative?    @relation("Lineage", fields: [parentId], references: [id])
+  children     Creative[]   @relation("Lineage")
+  publications Publication[]
+  ads          Ad[]
+
+  embedding CreativeEmbedding?
+
+  @@index([orgId, status])
+  @@index([productId])
+}
+
+enum CreativeFormat {
+  COPY
+  IMAGE
+  VIDEO_SHORT
+  CAROUSEL
+  VSL
+}
+
+enum CreativeFramework {
+  AIDA
+  PAS
+  BAB
+  FOUR_P
+  FAB
+}
+
+enum HookType {
+  COGNITIVE_DISSONANCE
+  QUESTION
+  BOLD
+  CONTRARIAN
+  BEFORE_AFTER
+  FORBIDDEN
+  PATTERN_INTERRUPT
+}
+
+enum CreativeStatus {
+  DRAFT
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  PUBLISHED
+  ARCHIVED
+}
+
+// ============================================================================
+// PUBLISHING
+// ============================================================================
+
+model Publication {
+  id          String            @id @default(cuid())
+  orgId       String
+  creativeId  String
+  channel     PublishChannel
+  externalId  String?
+  status      PublicationStatus @default(QUEUED)
+  scheduledAt DateTime?
+  publishedAt DateTime?
+  url         String?
+  metadata    Json              @default("{}")
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  creative Creative @relation(fields: [creativeId], references: [id])
+
+  @@index([orgId, channel, status])
+  @@index([scheduledAt])
+}
+
+enum PublishChannel {
+  META_FEED
+  META_REELS
+  META_STORIES
+  META_ADS
+  IG_FEED
+  IG_REELS
+  IG_STORIES
+  TIKTOK_ORGANIC
+  TIKTOK_ADS
+  YOUTUBE_SHORTS
+  YOUTUBE_LONG
+  YOUTUBE_ADS
+  WHATSAPP
+  TELEGRAM
+  FACEBOOK_GROUP
+}
+
+enum PublicationStatus {
+  QUEUED
+  PUBLISHING
+  PUBLISHED
+  FAILED
+  PAUSED
+}
+
+// ============================================================================
+// CAMPAIGNS / ADS / METRICS
+// ============================================================================
+
+model Campaign {
+  id          String         @id @default(cuid())
+  orgId       String
+  channel     PublishChannel
+  externalId  String?
+  name        String
+  status      CampaignStatus @default(ACTIVE)
+  budgetDaily Decimal        @db.Decimal(18, 4)
+  budgetCap   Decimal?       @db.Decimal(18, 4)
+  objective   String
+  metadata    Json           @default("{}")
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  org    Organization @relation(fields: [orgId], references: [id])
+  adSets AdSet[]
+
+  @@index([orgId, status])
+}
+
+enum CampaignStatus {
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+model AdSet {
+  id         String   @id @default(cuid())
+  campaignId String
+  externalId String?
+  name       String
+  targeting  Json     @default("{}")
+  createdAt  DateTime @default(now())
+
+  campaign Campaign @relation(fields: [campaignId], references: [id])
+  ads      Ad[]
+}
+
+model Ad {
+  id         String   @id @default(cuid())
+  adSetId    String
+  creativeId String
+  externalId String?
+  status     String   @default("ACTIVE")
+  createdAt  DateTime @default(now())
+
+  adSet    AdSet    @relation(fields: [adSetId], references: [id])
+  creative Creative @relation(fields: [creativeId], references: [id])
+  metrics  AdMetric[]
+}
+
+model AdMetric {
+  id          String   @id @default(cuid())
+  adId        String
+  date        DateTime @db.Date
+  spend       Decimal  @db.Decimal(18, 4)
+  impressions Int      @default(0)
+  clicks      Int      @default(0)
+  reach       Int      @default(0)
+  frequency   Decimal  @default(0) @db.Decimal(8, 4)
+  conversions Int      @default(0)
+  revenue     Decimal  @default(0) @db.Decimal(18, 4)
+  retention3s Decimal? @db.Decimal(5, 2)
+  sends       Int?
+  raw         Json     @default("{}")
+
+  ad Ad @relation(fields: [adId], references: [id])
+
+  @@unique([adId, date])
+  @@index([date])
+}
+
+model OptimizerAction {
+  id            String              @id @default(cuid())
+  orgId         String
+  type          OptimizerActionType
+  targetType    String
+  targetId      String
+  payloadBefore Json
+  payloadAfter  Json
+  reason        String
+  reversible    Boolean
+  executed      Boolean             @default(false)
+  executedAt    DateTime?
+  reversedAt    DateTime?
+  createdAt     DateTime            @default(now())
+
+  @@index([orgId, createdAt])
+}
+
+enum OptimizerActionType {
+  KILL
+  SCALE
+  DUPLICATE
+  MUTATE
+  REPOST
+  REPLY
+  PARTICIPATE
+  ROTATE
+  REFRESH_FORCED
+  BUDGET_REBALANCE
+  PAUSE_NIGHT
+  ENRICH_CAPI
+}
+
+// ============================================================================
+// BUDGET
+// ============================================================================
+
+model BudgetCap {
+  id         String   @id @default(cuid())
+  orgId      String
+  scope      String   // "global" | "campaign:{id}" | "channel:{name}"
+  daily      Decimal  @db.Decimal(18, 4)
+  weekly     Decimal? @db.Decimal(18, 4)
+  monthly    Decimal? @db.Decimal(18, 4)
+  currency   String   @default("BRL")
+  updatedAt  DateTime @updatedAt
+
+  org Organization @relation(fields: [orgId], references: [id])
+
+  @@unique([orgId, scope])
+}
+
+// ============================================================================
+// TRACKING (Pixel)
+// ============================================================================
+
+model PixelEvent {
+  id            String   @id @default(cuid())
+  orgId         String
+  eventName     String
+  eventId       String
+  occurredAt    DateTime
+  receivedAt    DateTime @default(now())
+  url           String?
+  fbp           String?
+  fbc           String?
+  ipHash        String?
+  uaHash        String?
+  emailHash     String?
+  phoneHash     String?
+  externalId    String?
+  value         Decimal? @db.Decimal(18, 4)
+  currency      String?
+  creativeId    String?
+  publicationId String?
+  raw           Json     @default("{}")
+
+  @@unique([orgId, eventId])
+  @@index([orgId, occurredAt])
+}
+
+model AttributionAssignment {
+  id            String   @id @default(cuid())
+  pixelEventId  String
+  channel       PublishChannel
+  creativeId    String?
+  weight        Decimal  @db.Decimal(5, 4)
+  model         String   @default("data_driven")
+  assignedAt    DateTime @default(now())
+}
+
+// ============================================================================
+// CHANNEL BOOTSTRAP
+// ============================================================================
+
+model SocialChannel {
+  id         String        @id @default(cuid())
+  orgId      String
+  provider   Provider
+  externalId String?
+  handle     String
+  brandDna   Json          @default("{}")
+  status     ChannelStatus @default(PLANNED)
+  phase      ChannelPhase  @default(IGNITION)
+  followers  Int           @default(0)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  org          Organization   @relation(fields: [orgId], references: [id])
+  editorialItems EditorialItem[]
+
+  @@index([orgId, provider])
+}
+
+enum ChannelStatus {
+  PLANNED
+  PROVISIONING
+  ACTIVE
+  WARMING
+  SHADOWBAN_SUSPECT
+  BANNED
+}
+
+enum ChannelPhase {
+  IGNITION
+  AUTHORITY
+  CONVERSION
+  MATURE
+}
+
+model EditorialItem {
+  id          String          @id @default(cuid())
+  channelId   String
+  creativeId  String?
+  scheduledAt DateTime
+  status      PublicationStatus @default(QUEUED)
+  caption     String?
+  hashtags    String[]
+  createdAt   DateTime        @default(now())
+
+  channel SocialChannel @relation(fields: [channelId], references: [id])
+
+  @@index([channelId, scheduledAt])
+}
+
+// ============================================================================
+// MESSAGING
+// ============================================================================
+
+model MessagingFlow {
+  id        String   @id @default(cuid())
+  orgId     String
+  provider  Provider
+  name      String
+  steps     Json
+  metrics   Json     @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  org Organization @relation(fields: [orgId], references: [id])
+}
+
+// ============================================================================
+// COMMUNITY
+// ============================================================================
+
+model CommunityGroup {
+  id           String   @id @default(cuid())
+  orgId        String
+  provider     Provider
+  externalId   String
+  name         String
+  qualityScore Decimal  @default(0) @db.Decimal(5, 2)
+  rules        Json     @default("{}")
+  status       String   @default("ACTIVE")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  org Organization @relation(fields: [orgId], references: [id])
+
+  @@unique([orgId, provider, externalId])
+}
+
+// ============================================================================
+// LAUNCH MODE
+// ============================================================================
+
+model Launch {
+  id           String       @id @default(cuid())
+  orgId        String
+  productId    String
+  templateKey  String
+  startsAt     DateTime
+  cartOpenAt   DateTime
+  cartCloseAt  DateTime
+  budgetCap    Decimal      @db.Decimal(18, 4)
+  status       LaunchStatus @default(PLANNED)
+  metrics      Json         @default("{}")
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  org Organization @relation(fields: [orgId], references: [id])
+
+  @@index([orgId, status])
+}
+
+enum LaunchStatus {
+  PLANNED
+  PRELAUNCH
+  WARMUP
+  CART_OPEN
+  CART_CLOSED
+  RETROSPECTIVE
+}
+
+// ============================================================================
+// GOVERNANCE / AUDIT
+// ============================================================================
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  orgId        String
+  actorType    String
+  actorId      String
+  action       String
+  resourceType String
+  resourceId   String?
+  before       Json?
+  after        Json?
+  reason       String?
+  createdAt    DateTime @default(now())
+
+  org Organization @relation(fields: [orgId], references: [id])
+
+  @@index([orgId, createdAt])
+}
+
+model WebhookEvent {
+  id         String   @id @default(cuid())
+  provider   Provider
+  eventType  String
+  payload    Json
+  status     String   @default("received")
+  receivedAt DateTime @default(now())
+  processedAt DateTime?
+  error      String?
+
+  @@index([provider, status])
+  @@index([receivedAt])
+}
+
+// ============================================================================
+// AI OBSERVABILITY
+// ============================================================================
+
+model AiUsage {
+  id          String   @id @default(cuid())
+  orgId       String
+  useCase     String
+  model       String
+  promptHash  String?
+  tokensIn    Int
+  tokensOut   Int
+  costUsd     Decimal  @db.Decimal(10, 6)
+  durationMs  Int
+  status      String   @default("ok")
+  createdAt   DateTime @default(now())
+
+  org Organization @relation(fields: [orgId], references: [id])
+
+  @@index([orgId, createdAt])
+}
+
+// ============================================================================
+// VECTOR STORE (pgvector)
+// ============================================================================
+
+model CreativeEmbedding {
+  creativeId String                     @id
+  vector     Unsupported("vector(1536)")?
+  kind       String                     @default("creative_assets")
+  updatedAt  DateTime                   @updatedAt
+
+  creative Creative @relation(fields: [creativeId], references: [id], onDelete: Cascade)
+}
+
+model ProductEmbedding {
+  productId String                     @id
+  vector    Unsupported("vector(1536)")?
+  updatedAt DateTime                   @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+}

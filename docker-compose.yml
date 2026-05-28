@@ -1,0 +1,28 @@
+# docker-compose.yml — OPCIONAL para desenvolvimento local
+# O projeto roda com Neon (Postgres online) + Upstash (Redis online).
+# Use este arquivo SOMENTE se quiser rodar Redis localmente em vez do Upstash.
+#
+# Para subir: docker compose up redis maildev -d
+
+version: '3.9'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: nextface-redis-local
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - redisdata:/data
+    command: redis-server --save 60 1 --loglevel warning
+
+  maildev:
+    image: maildev/maildev
+    container_name: nextface-maildev
+    ports:
+      - '1080:1080'   # UI web para ver e-mails em dev
+      - '1025:1025'   # SMTP
+
+volumes:
+  redisdata:

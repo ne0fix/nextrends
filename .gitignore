@@ -1,0 +1,65 @@
+# ============================================================================
+# NextFace — .gitignore
+# NUNCA commitar .env, chaves, ou qualquer credencial.
+# ============================================================================
+
+# Segredos (CRÍTICO)
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+.env.staging
+secrets/
+*.pem
+*.key
+*.p12
+*.pfx
+credentials.json
+
+# Dependências
+node_modules/
+.pnpm-store/
+.yarn/
+
+# Build / cache
+.next/
+out/
+dist/
+build/
+.turbo/
+.cache/
+*.tsbuildinfo
+
+# Logs e debug
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Testes / coverage
+coverage/
+.nyc_output/
+
+# Banco e infra local
+*.sqlite
+*.sqlite3
+pgdata/
+redisdata/
+
+# Prisma
+prisma/migrations/dev/
+
+# IDE / OS
+.vscode/
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# Uploads e assets gerados localmente
+uploads/
+tmp/

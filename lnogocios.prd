@@ -1,0 +1,928 @@
+# PRD — Plataforma de Automação de Marketing para Infoprodutos com IA Autônoma
+
+**Codinome do projeto:** NextFace
+**Versão do documento:** 1.2
+**Data:** 2026-05-28
+**Changelog v1.1:** adicionada Seção 7.6 (Credenciais e Integrações) e Módulo 10 (Channel Bootstrap — criação de canais do zero); atualizado Auto-Publisher, roadmap e glossário.
+**Changelog v1.2 (revisão com benchmarks de mercado 2026):**
+- Incorporados sinais do algoritmo **Meta Andromeda** (criativo como sinal primário de delivery).
+- Adicionado **Originality Score** do Instagram e proibição de repost direto cross-channel.
+- **Sends/DM shares** elevado a métrica de viralização nº1 do Reels.
+- Adicionada **janela 30–60min** crítica para YouTube Shorts.
+- Frequências de fadiga diferenciadas (cold 2.5/4.0; warm 5.0/7.0).
+- Reforçado **CAPI obrigatório**, **Event Match Quality ≥8.0** e one-click CAPI (abr/2026).
+- Adicionado **modelo de Hooks 2026** (cognitive dissonance, layered, retention 70–85%).
+- KPIs de **UGC ads** (3–6% conv vs 1–3%; 6.73x).
+- Novo módulo 11 — **Messaging Funnel** (WhatsApp, Telegram, Click-to-WhatsApp ads).
+- Novo módulo 12 — **Community Marketing** (Facebook Groups, Telegram channels, grupos VIP, fóruns).
+- Novo modo operacional **Launch Mode (Fórmula de Lançamento)** ao lado do Always-On.
+- Adicionada regra **≤30% de gasto em qualquer plataforma** (diversificação).
+- Atualizada geração de vídeo (AI avatars, voice cloning, HeyGen/Synthesia/Veo 3.1/Sora 2 — com data de descontinuação Sora API 24/set/2026).
+- Refresh criativo forçado e **portfólio mínimo de 10–25 variants ativas**.
+- Critério **YPP-Ready** para graduação de canal YouTube no Channel Bootstrap.
+- Regra **Advantage+ Audience + 60/30/10 budget split** no Optimizer.
+**Escopo deste PRD:** Apenas lógica de negócios. Stack técnica (Next.js SSR + Tailwind, MVVM, BFF + Prisma + PostgreSQL) será detalhada em PRD técnico posterior.
+
+---
+
+## 1. Visão Geral
+
+### 1.1 Resumo Executivo
+O NextFace é uma plataforma SaaS que automatiza ponta a ponta o ciclo de marketing de infoprodutos: descobre produtos com alto potencial de venda nas principais plataformas (Kiwify, Ticto, HeroSpark, Monetizze, Eduzz, Hotmart, Braip), gera criativos publicitários (texto, imagem, vídeo) via IA generativa, publica em múltiplos canais usando as credenciais conectadas pelo usuário — **Meta (Facebook Ads + Instagram Ads/orgânico via Graph API)**, **TikTok for Business (Ads + orgânico)**, **YouTube (Data API v3 + YouTube Content/Upload + Google Ads)** — além de **criar e crescer canais do zero** (perfis Instagram, páginas Facebook, contas TikTok for Business e canais YouTube) com planos de aquisição de seguidores planejados e executados por IA. Monitora KPIs em tempo real via Pixel/SDK próprio + APIs das plataformas, e ajusta autonomamente (kill, scale, replicate, mutate) os criativos e campanhas conforme a performance, aplicando técnicas avançadas de viralização.
+
+### 1.2 Problema
+- Infoprodutores e afiliados gastam 40–70% do tempo operacional em tarefas repetitivas: pesquisa de produtos, criação de criativos, postagem, análise de métricas e otimização de campanhas.
+- Decisões de "matar" ou "escalar" criativos dependem de leitura humana lenta de dados dispersos em N plataformas.
+- Janela de viralização de criativos é curta (24–72h); resposta humana raramente é rápida o suficiente.
+- Conformidade com políticas de anúncios (Meta, TikTok) exige adaptação contínua de copy/visual.
+
+### 1.3 Solução
+Um agente autônomo (Loop OODA: Observar → Orientar → Decidir → Agir) que executa o ciclo completo de marketing 24/7, com supervisão humana opcional configurável por nível de risco financeiro.
+
+### 1.4 Visão de Produto (1 frase)
+> "A IA que descobre o produto certo, cria o anúncio perfeito, publica na hora certa e otimiza sozinha até viralizar — enquanto o operador dorme."
+
+---
+
+## 2. Objetivos e Métricas de Sucesso
+
+### 2.1 Objetivos de Negócio
+| ID | Objetivo | Métrica primária | Meta inicial (6 meses) |
+|----|----------|------------------|------------------------|
+| OBJ-01 | Reduzir tempo operacional do usuário | Horas/semana por campanha ativa | <2h |
+| OBJ-02 | Aumentar ROAS médio do usuário | ROAS agregado | ≥2.5x |
+| OBJ-03 | Aumentar taxa de criativos vencedores | % criativos com CTR ≥ 1.5% | ≥30% |
+| OBJ-04 | Reduzir CAC (Custo de Aquisição) | CAC médio por nicho | -25% vs baseline |
+| OBJ-05 | Detectar criativo viral cedo | Tempo até identificar vencedor | <6h após publicar |
+
+### 2.2 KPIs do Sistema
+- **Taxa de viralização**: % de criativos gerados que atingem >100k views em 72h.
+- **Acurácia preditiva**: % de criativos rotulados pela IA como "alto potencial" que se confirmam (precisão/recall).
+- **Tempo médio de ciclo OODA**: minutos entre coleta de dado e ação executada.
+- **Taxa de bloqueio**: % de anúncios rejeitados por políticas das plataformas.
+
+---
+
+## 3. Personas
+
+### 3.1 Persona Primária — "Operador Solo"
+- Infoprodutor ou afiliado solo, R$10k–R$200k/mês em vendas.
+- Conhecimento médio de tráfego pago, baixa capacidade analítica.
+- Quer "apertar um botão" e ter campanhas rodando.
+
+### 3.2 Persona Secundária — "Gestor de Tráfego Profissional"
+- Atende 5–30 clientes simultâneos.
+- Precisa de painel multi-conta, relatórios white-label, controle granular.
+- Aceita IA autônoma mas exige "modo aprovação" para gastos acima de limite.
+
+### 3.3 Persona Terciária — "Agência/Equipe"
+- 3+ usuários colaborando em uma conta.
+- RBAC (papéis: admin, gestor, criativo, financeiro, viewer).
+- Auditoria de ações da IA obrigatória.
+
+---
+
+## 4. Escopo Funcional
+
+### 4.1 Módulos do Sistema (visão alto nível)
+1. **Discovery** — Descoberta de produtos vencedores.
+2. **Creative Forge** — Geração de criativos por IA.
+3. **Auto-Publisher** — Distribuição e agendamento multi-canal.
+4. **Pixel & Tracking** — Coleta de eventos próprios e de terceiros.
+5. **Analytics Brain** — Análise por IA e classificação de criativos.
+6. **Autonomous Optimizer** — Loop OODA decisor.
+7. **Compliance Guard** — Verificação de políticas e segurança de conteúdo.
+8. **Financial Ops** — Controle de orçamento e ROI consolidado.
+9. **Governance & Audit** — Logs, aprovações humanas, RBAC.
+10. **Channel Bootstrap** — Criação e crescimento de canais (perfis IG, páginas Facebook, contas TikTok for Business e canais YouTube) do zero, planejado e executado por IA.
+11. **Messaging Funnel** — WhatsApp e Telegram como canais de funil + Click-to-WhatsApp Ads.
+12. **Community Marketing** — Grupos Facebook, comunidades IG, canais e grupos Telegram, WhatsApp Communities.
+13. **Launch Mode** — Suporte ao modelo brasileiro de Fórmula de Lançamento (sazonal), coexistindo com Always-On.
+
+---
+
+## 5. Módulo 1 — Discovery (Descoberta de Produtos)
+
+### 5.1 Objetivo
+Identificar produtos com maior probabilidade de venda no momento, antes de saturarem.
+
+### 5.2 Fontes de Dados
+- **APIs oficiais das plataformas**: Kiwify, Hotmart, Eduzz, Monetizze, HeroSpark, Ticto, Braip.
+- **Scraping ético** de páginas públicas de ranking (top vendidos, mais quentes).
+- **Sinais externos**: Google Trends, TikTok Creative Center (anúncios em alta), Meta Ads Library, AdSpy-like (anúncios ativos com longa permanência).
+- **Histórico interno**: produtos já promovidos pelos usuários da plataforma (dados anonimizados/opt-in).
+
+### 5.3 Score de Potencial (Hot Score)
+Cálculo composto, peso configurável por nicho:
+- Volume de vendas estimado (peso 25%)
+- Crescimento de demanda nas últimas 7d (peso 20%)
+- Comissão média por venda (peso 15%)
+- Saturação (nº de afiliados ativos; inverso, peso 15%)
+- Qualidade da página de vendas (heurísticas: VSL, depoimentos, garantia) (peso 10%)
+- Reviews/reputação do produtor (peso 10%)
+- Aderência ao nicho do usuário (peso 5%)
+
+### 5.4 Regras de Negócio
+- RN-DISC-01: Hot Score é recalculado a cada 6h por produto rastreado.
+- RN-DISC-02: Produtos com saturação >80% são marcados como "saturado — usar abordagem lateral".
+- RN-DISC-03: Sistema sugere top-10 produtos por nicho do usuário, com explicação textual gerada por IA do "por quê" deste produto.
+- RN-DISC-04: Bloquear produtos em lista de risco (saúde sem registro, financeiro tipo "pirâmide", conteúdo proibido).
+
+### 5.5 Saídas
+- Lista priorizada de produtos com: Hot Score, link de afiliado pré-configurado, dossiê do produto (público-alvo inferido, dores, benefícios, objeções, gatilhos psicológicos sugeridos).
+
+---
+
+## 6. Módulo 2 — Creative Forge (Geração de Criativos)
+
+### 6.1 Tipos de Criativo
+- **Copy**: headline, primary text, descrição, CTA. Variantes A/B/C/D.
+- **Imagem estática**: feeds, stories, thumbnails.
+- **Vídeo curto** (até 90s): VSL curta, reels, TikTok-style, YouTube Shorts.
+- **Carrossel**: 5–10 cards educativos/persuasivos.
+
+### 6.2 Frameworks Criativos Aplicados
+A IA seleciona dinamicamente um framework com base no produto + público:
+- **AIDA**, **PAS** (Problema-Agitação-Solução), **BAB** (Before-After-Bridge), **4P** (Picture-Promise-Prove-Push), **FAB**.
+- Para vídeo: **Hook nos primeiros 3s** + **retenção em 7s** + **prova social aos 20s** + **CTA aos 60s**.
+
+### 6.3 Técnicas Avançadas de Viralização (Atualizado 2026)
+
+#### 6.3.1 Hook Patterns (priorização 2026)
+- **Cognitive Dissonance Hook** (prioridade nº1 em 2026): afirmação/visual que o cérebro "não consegue ignorar" porque precisa resolver a inconsistência.
+- **Question Hook**: pergunta que abre lacuna de informação sobre algo que o público desesperadamente quer saber.
+- **Bold Statement / Contrarian**: afirmação ousada contra senso comum (forte para conteúdo educacional).
+- **Pattern Interrupt** a cada 3–5s (corte, zoom, texto piscando).
+- **Before/After extremo**.
+- **"Proibido falar / segredo do mercado"**.
+
+#### 6.3.2 Layered Hooks (Regra de Camadas)
+Toda peça de vídeo deve combinar **3 camadas simultâneas nos primeiros 3s**:
+1. **Visual** (movimento ou imagem-choque).
+2. **Auditivo** (frase falada ou som disruptivo).
+3. **Textual** (legenda on-screen sincronizada).
+Estudos 2026 mostram que hooks com 3 camadas têm retenção 3x maior que hooks single-layer.
+
+#### 6.3.3 Benchmarks Quantitativos de Retenção (alvos)
+- **Retenção 3s ≥ 70%** = aceitável; **≥ 85%** = elite (recebe 2.8x mais views).
+- **Retenção média do vídeo ≥ 60%** para Reels/Shorts; **≥ 50%** para vídeos >60s.
+- Vídeos abaixo dos limiares são marcados pelo Analytics Brain como "hook fail" e auto-mutados (MUTATE).
+
+#### 6.3.4 Princípios de Algoritmo (2026)
+- **Meta Andromeda**: a Meta agora usa o **criativo em si** (imagem, copy, áudio, vídeo) como sinal primário de delivery — Creative Forge gera embeddings do criativo e otimiza tanto para humanos quanto para o que Andromeda "vê".
+- **Instagram Originality Score**: penaliza conteúdo reciclado/reposted (incluindo watermark de TikTok). Toda adaptação cross-channel **re-renderiza** o vídeo (sem watermark de origem), com cortes, transições e legendas próprias.
+- **Sends como Métrica nº1 (Reels)**: o sistema otimiza para *DM shares* (compartilhamentos privados) — métrica que o IG 2026 pondera acima de likes/saves.
+- **YouTube Shorts — Janela 30–60min**: Shorts que não atingem threshold inicial (>70% retenção 3s + CTR aceitável) nos primeiros 30–60min são deprioritizados pelo algoritmo permanentemente. O Optimizer marca todo Short publicado e avalia esta janela como gate.
+
+#### 6.3.5 UGC-First Generation
+- Padrão: criativos têm **estética UGC** (selfie, iluminação natural, voz humana imperfeita) em ≥70% das gerações.
+- KPI alvo: UGC ads convertendo a **3–6%** vs 1–3% de polished brand ads; CTR 4x maior; CPC -50%.
+- Estilos suportados: "talking head" (avatar IA ou pessoa real fornecida), "POV", "tutorial bagunçado", "depoimento espontâneo", "reaction".
+
+#### 6.3.6 Geração por IA (Stack 2026)
+- **Avatares e talking heads**: HeyGen (175+ idiomas, voice cloning preservando tom), Synthesia.
+- **B-roll cinematográfico**: Veo 3.1, Sora 2 (via HeyGen/Synthesia/InVideo — Sora API descontinuada em **24/09/2026**, sistema deve usar wrappers que mantenham acesso).
+- **Voice cloning**: opt-in obrigatório do usuário; consentimento documentado; banco de vozes por canal.
+- **Stack abstraído**: NextFace mantém camada de abstração para trocar de provedor sem impacto no produto.
+
+#### 6.3.7 Demais Técnicas
+- **Loop perfeito** no final do vídeo (a última cena puxa a primeira).
+- **Texto on-screen sincronizado** com narração (legendas dinâmicas).
+- **Trending audio** detectado automaticamente em TikTok/Reels (uso licenciado quando possível).
+- **Polarização controlada**: gera comentários (engajamento), sem violar políticas.
+- **Curiosity gap**: a thumbnail/hook revela parcialmente, prometendo a resposta.
+
+### 6.4 Pipeline de Geração
+1. Recebe dossiê do produto (saída do Discovery).
+2. Define ângulo criativo (dor, desejo, identidade, transformação, status, medo).
+3. Gera roteiro (script) com IA generativa.
+4. Gera assets (imagens via T2I; vídeos via T2V ou stock + edição automatizada).
+5. Renderiza com legendas, branding, watermark opcional.
+6. Submete ao **Compliance Guard** (módulo 7).
+7. Versiona como Criativo v1.0; variações = v1.1, v1.2... gerando linhagem (parent_id) para tracking de "DNA criativo".
+
+### 6.5 Regras de Negócio
+- RN-CF-01: Toda geração é determinística por seed reprodutível (auditoria).
+- RN-CF-02: Cada criativo carrega metadados: framework, ângulo, hook_type, target_persona, prompt usado.
+- RN-CF-03: Limite de geração por minuto/usuário para controle de custo de IA (configurável por plano).
+- RN-CF-04: Banco de "hooks vencedores" alimenta novas gerações (RAG sobre criativos com CTR alto).
+- RN-CF-05: Bloquear claims médicos, financeiros garantidos e linguagem proibida (lista atualizada por plataforma de ads).
+
+---
+
+## 7. Módulo 3 — Auto-Publisher (Distribuição)
+
+### 7.1 Canais Suportados
+- **Pagos**:
+  - **Meta Ads** (Facebook + Instagram) — via Marketing API + Graph API, usando token de longa duração da Business Manager fornecida pelo usuário.
+  - **TikTok for Business (Ads)** — via TikTok Marketing API, usando App ID + Secret + Access Token autorizados pelo usuário.
+  - **Google Ads** (Search, Display, YouTube) — via Google Ads API (developer token + OAuth do usuário).
+  - **YouTube Ads** integrados ao Google Ads.
+  - Kwai Ads (v2+).
+- **Orgânicos**:
+  - **Instagram** (Reels, Feed, Stories, Carrossel) — via Instagram Graph API + Content Publishing API (conta Business/Creator).
+  - **Facebook** (posts em página, Reels, Stories, **Groups**) — via Facebook Graph API.
+  - **TikTok for Business orgânico** — via Content Posting API.
+  - **YouTube** (Shorts, Long-form, lives, community posts) — via YouTube Data API v3 + Upload (resumable).
+  - Kwai, Twitter/X, Threads, Pinterest (v2+).
+- **Messaging / Comunidade**:
+  - **WhatsApp Business Platform (Cloud API)** — broadcasts, templates aprovados, bot, click-to-chat tracking.
+  - **WhatsApp Click-to-WhatsApp Ads** — anúncio que abre chat direto (usa mesma credencial Meta).
+  - **Telegram Bot API** — canais broadcast, grupos, bots de qualificação.
+  - **WhatsApp Communities** (canal Meta) para pós-venda e VIP.
+
+### 7.2 Lógica de Roteamento
+A IA decide o canal ótimo por criativo:
+- Persona + nicho + formato de criativo + custo médio do canal naquele momento.
+- Distribui o **mesmo criativo** com adaptações específicas por canal (aspect ratio, duração, copy curtada).
+
+### 7.3 Janela de Postagem Ótima
+- Calculada por: histórico do canal, fuso horário do público-alvo, eventos sazonais, dados internos de horários que geraram melhor engajamento por nicho.
+- Stories/Reels: posta nos horários de pico do público (ex.: 12h, 19h, 22h).
+- Anúncios pagos: ativados quando saldo + horário convergem com janela de melhor CPM.
+
+### 7.4 Regras de Negócio
+- RN-PUB-01: Antes de publicar, verificar token válido + permissões da conta conectada.
+- RN-PUB-02: Em caso de falha de API, repostar com backoff exponencial até 3 tentativas; depois alerta humano.
+- RN-PUB-03: Limites de postagem por canal/dia respeitados (para evitar shadowban).
+- RN-PUB-04: Cada postagem registra: canal, conta, horário, criativo_id, link rastreado (UTM + redirect curto).
+- RN-PUB-05: Em modo "aprovação humana", postagem fica em fila aguardando aprovação (TTL configurável).
+
+### 7.5 Lógica de Adaptação por Canal
+A IA adapta automaticamente cada criativo às especificações de cada API/canal antes de publicar:
+- **Meta (Instagram/Facebook)**: aspect ratios (1:1, 4:5, 9:16), duração (Reels ≤90s, Stories ≤60s), copy ≤2.200 caracteres, primeiros 125 chars otimizados (corte do "ver mais"), até 30 hashtags relevantes selecionadas por IA.
+- **TikTok for Business**: 9:16, 9–60s para feed orgânico (até 10min em casos especiais), copy ≤2.200 chars, hashtags trending detectadas automaticamente, áudio licenciado/comercial validado.
+- **YouTube**: Shorts ≤60s vertical 9:16; long-form 16:9 com chapters; título ≤100 chars, descrição com primeiros 157 chars otimizados para SERP, tags geradas por IA (mix cauda longa + curta), thumbnail customizada gerada.
+- **Cross-channel**: o sistema mantém o "ângulo criativo" mas re-renderiza assets nas razões corretas para cada canal — nenhum criativo é simplesmente "esticado" entre formatos.
+
+### 7.6 Credenciais e Integrações Externas
+
+#### 7.6.1 Princípio Geral
+Todas as credenciais que permitem postagem/anúncio em nome do usuário são **fornecidas pelo próprio usuário** durante o onboarding ou em "Configurações → Integrações". A NextFace nunca pede senhas finais — apenas tokens OAuth/API gerados pelo usuário no painel oficial de cada plataforma, conforme suas próprias políticas.
+
+#### 7.6.2 Credenciais Esperadas por Plataforma
+
+##### Meta (Facebook + Instagram, ads + orgânico)
+- **App ID** e **App Secret** de um aplicativo Meta criado pelo usuário (Business + Marketing API habilitados).
+- **System User Access Token** (longa duração, preferencial) emitido pela Business Manager do usuário.
+- **Business Manager ID**, **Ad Account ID(s)**, **Facebook Page ID(s)**, **Instagram Business Account ID(s)** vinculados.
+- Escopos exigidos (mínimo): `ads_management`, `ads_read`, `business_management`, `pages_show_list`, `pages_manage_posts`, `pages_read_engagement`, `pages_manage_engagement`, `instagram_basic`, `instagram_content_publish`, `instagram_manage_comments`, `instagram_manage_insights`, `read_insights`.
+- Pixel ID(s) Meta + token CAPI (para envio server-side de conversões).
+
+##### TikTok for Business (Ads + Orgânico)
+- **App ID** e **App Secret** de um app criado no TikTok for Developers do usuário, com produtos **Marketing API** e **Content Posting API** habilitados.
+- **Long-Lived Access Token** + **Advertiser ID(s)** + **BC ID** (Business Center).
+- Escopos exigidos: `ad.management`, `report.read`, `creative.management`, `audience.management`, `video.publish`, `video.list`, `comment.management`.
+- TikTok Pixel ID + Access Token de Events API.
+
+##### YouTube (Data + Upload + Analytics)
+- **Google Cloud Project ID** com APIs habilitadas: **YouTube Data API v3**, **YouTube Analytics API**, **YouTube Reporting API**, **Google Ads API** (se for usar YouTube Ads).
+- **OAuth 2.0 Client ID + Client Secret** (tipo aplicação web).
+- **Refresh Token** do usuário com escopos: `youtube.upload`, `youtube`, `youtube.force-ssl`, `yt-analytics.readonly`, `yt-analytics-monetary.readonly`.
+- (Opcional, para YouTube Ads) **Developer Token** do Google Ads + Customer ID.
+
+##### WhatsApp (Business Platform / Cloud API)
+- **Phone Number ID** + **WhatsApp Business Account (WABA) ID** vinculados à Business Manager Meta do usuário.
+- **Permanent Access Token** (System User) com escopos: `whatsapp_business_management`, `whatsapp_business_messaging`, `business_management`.
+- **Templates aprovados** (HSM) — submetidos via API ou Business Manager.
+
+##### Telegram
+- **Bot Token** (gerado via BotFather pelo usuário).
+- (Opcional) **Channel ID / Group ID** que o bot administra.
+
+##### Outras Plataformas (v2+)
+- Kwai for Business, Twitter/X, Pinterest, Threads, LinkedIn — modelo equivalente (OAuth + API keys do usuário).
+
+#### 7.6.3 Fluxo de Conexão (Onboarding)
+1. Usuário entra em "Integrações" e escolhe a plataforma.
+2. Plataforma exibe instruções passo a passo ilustradas para o usuário criar/obter as credenciais oficiais.
+3. Sempre que disponível, é oferecida a opção de **Conectar via OAuth** (clique único, sem o usuário precisar copiar/colar tokens).
+4. Quando OAuth não está disponível ou o usuário prefere, o sistema aceita inserção manual segura (campos mascarados, validação em tempo real).
+5. Após gravação, o sistema executa **health check** (chamada read-only à API: lista de páginas, contas de ads, canais) e mostra o que detectou.
+6. Usuário seleciona quais ad accounts / páginas / canais ficarão sob automação.
+7. Sistema testa permissões críticas (publicar rascunho oculto e deletar) antes de marcar a integração como "saudável".
+
+#### 7.6.4 Armazenamento e Rotação de Segredos
+- Todos os segredos são criptografados em repouso com KMS (envelope encryption); o app não tem acesso a chaves master.
+- Tokens são tipados (`access`, `refresh`, `system_user`) com TTL conhecido; **refresh automático** antes de expirar.
+- Em caso de falha de refresh (revogação pelo usuário, expiração de App Review etc.), o sistema:
+  - Pausa todas as ações que dependam daquele token.
+  - Notifica o usuário (in-app + e-mail + WhatsApp opcional) com link 1-clique para reautenticar.
+  - Mantém histórico das últimas 5 rotações.
+- O usuário pode **revogar** qualquer integração a qualquer momento; o sistema invalida o token localmente e tenta revogá-lo na plataforma de origem.
+
+#### 7.6.5 Regras de Negócio
+- RN-CRED-01: Nenhuma credencial é compartilhada entre tenants; isolamento por organização é estrito.
+- RN-CRED-02: Ações destrutivas (excluir página, encerrar canal) **nunca** são executadas pela IA, mesmo com credenciais válidas — fora do escopo permitido pelo design.
+- RN-CRED-03: O sistema só requisita escopos mínimos necessários ao módulo ativo; se o usuário ativar um novo módulo (ex.: comments management), é solicitado escopo adicional explicitamente.
+- RN-CRED-04: Health check periódico (a cada 6h) valida cada token; integração com erro persistente >24h vira "degradada" e a IA evita campanhas dependentes dela.
+- RN-CRED-05: Logs de uso de credencial são auditáveis: quem usou, em que ação, em que recurso, com que resultado.
+- RN-CRED-06: Em caso de incidente de segurança, há botão "revogar todas integrações" (kill switch) imediato.
+
+---
+
+## 8. Módulo 4 — Pixel & Tracking
+
+### 8.1 Pixel Próprio (NextFace Pixel)
+Snippet JS embutido na página do infoproduto (quando o usuário tem acesso) ou em landing intermediária (bridge page) controlada pela plataforma.
+
+### 8.2 Eventos Coletados
+- `page_view`, `scroll_depth`, `video_view_25/50/75/100`, `cta_click`, `form_start`, `form_submit`, `checkout_start`, `purchase`, `purchase_value`.
+- Cada evento carrega: criativo_id, canal, campanha, ad_set, ad, click_id, geo, device, hora.
+
+### 8.3 Integração com Pixels de Terceiros (Atualizado 2026)
+- **CAPI obrigatório** em todas as integrações Meta (Pixel sozinho não basta — atribuição degradou 50–70% desde iOS 14.5).
+- Suportar **one-click CAPI** liberado pela Meta em abril/2026 (Events Manager) como onboarding rápido para usuários sem servidor próprio.
+- Deduplicação por `event_id` + `transaction_id` (Pixel client-side + CAPI server-side enviam o mesmo evento).
+- **Event Match Quality (EMQ)** mínimo de **8.0/10** como meta operacional — envio rico de identificadores hasheados (email, phone, fbp, fbc, IP, user agent, external_id, geo).
+- TikTok Events API e Google Enhanced Conversions com a mesma exigência de match quality.
+- Janelas padronizadas em **7d clique / 1d view** (janelas mais longas foram removidas pelo Meta em jan/2026).
+
+### 8.4 Atribuição
+- **Modelo padrão**: data-driven multi-touch (last-click ponderado).
+- **Modelos alternativos**: first-click, linear, time-decay (selecionáveis por usuário).
+- Janelas: 7d clique / 1d view (configurável).
+
+### 8.5 Regras de Negócio
+- RN-PIX-01: Consentimento (LGPD/GDPR) é obrigatório; pixel só dispara após opt-in.
+- RN-PIX-02: Dados de PII (e-mail, telefone) são hashados (SHA-256) antes de saírem do navegador.
+- RN-PIX-03: Latência aceitável evento → dashboard ≤ 60s p95.
+- RN-PIX-04: Anomalias de tráfego (bot spike, fraude) marcam eventos como suspeitos e os isolam do treino da IA.
+
+---
+
+## 9. Módulo 5 — Analytics Brain (Análise por IA)
+
+### 9.1 Camadas de Análise
+
+#### Camada 1 — Descritiva (o que aconteceu)
+- Dashboards padrão: CTR, CPM, CPC, CPA, ROAS, frequência, retenção de vídeo, watch time, comentários, salvamentos, compartilhamentos.
+
+#### Camada 2 — Diagnóstica (por que aconteceu)
+- IA correlaciona drops/picos com mudanças: novo criativo, mudança de público, horário, esgotamento de público (fatigue), saturação concorrencial.
+
+#### Camada 3 — Preditiva (o que vai acontecer)
+- Previsão de ROAS nas próximas 24h/7d com intervalo de confiança.
+- Previsão de "data de morte" do criativo (fatigue forecast).
+
+#### Camada 4 — Prescritiva (o que fazer)
+- Recomendação acionável: kill, scale, duplicate, mutate, change audience, change bid.
+
+### 9.2 Classificador de Criativo
+Cada criativo recebe rótulo automático:
+- **Winner**: CTR > P75 do nicho, ROAS > meta, frequência saudável.
+- **Promising**: sinais iniciais positivos, ainda em ramp-up.
+- **Stable**: performance ok, sem crescimento.
+- **Fatigued**: CTR caindo + frequência alta.
+- **Loser**: gastou X% do budget sem atingir métricas mínimas.
+
+### 9.3 Detecção de "Hit Viral Precoce" (Atualizado 2026)
+Algoritmo dispara alerta quando QUALQUER condição abaixo é satisfeita nos primeiros 1.000 views:
+- **Sends/DM shares > 3x média do nicho** (sinal nº1 do Reels/IG em 2026).
+- Compartilhamentos públicos > 3x média do nicho.
+- Comentários positivos > 70% (análise de sentimento).
+- Retenção 3s ≥ 85% **E** watch time médio > 80%.
+- Para **YouTube Shorts**: nos primeiros **30–60 minutos**, retenção média ≥ 70% + impressões com CTR ≥ 4%.
+
+Resposta automática:
+- Escala budget em 50% (respeitando cap).
+- Replica criativo para outros canais (com **re-renderização** para não violar Originality Score).
+- Aciona Channel Bootstrap para criar variantes em canais paralelos da frota.
+
+### 9.3.1 Sinal de "Hook Fail"
+Inverso do hit precoce. Disparado quando:
+- Retenção 3s < 50% **OU** sends/comments próximos de zero nos primeiros 500 views.
+→ Sistema imediatamente desativa o post (se possível) ou suprime budget e aciona MUTATE no hook.
+
+### 9.4 Análise de Pixel/Funil
+- Mapa de fricção: identifica em qual etapa o usuário sai (page_view → checkout → purchase).
+- Sugere correção: copy do checkout, oferta, garantia, preço.
+
+### 9.5 Regras de Negócio
+- RN-AN-01: Modelos preditivos exigem mínimo de 30 conversões ou 7 dias antes de atuar; abaixo disso, sistema sinaliza "amostra insuficiente".
+- RN-AN-02: Toda decisão prescritiva carrega "explicação" textual ao usuário (XAI — IA explicável).
+- RN-AN-03: Drift de modelo é monitorado semanalmente; retreino automático quando degradação > 10%.
+
+---
+
+## 10. Módulo 6 — Autonomous Optimizer (Loop OODA)
+
+### 10.1 Ciclo Completo
+**Observar** → coleta de KPIs a cada intervalo (default 15min para campanhas pagas, 1h para orgânico).
+**Orientar** → Analytics Brain classifica criativos e diagnóstica situação.
+**Decidir** → motor de regras + IA escolhe ação(ões).
+**Agir** → executa via Auto-Publisher, plataformas de Ads e Creative Forge (se for mutação).
+
+### 10.2 Ações Possíveis (Atualizado 2026)
+| Ação | Quando dispara | Comportamento |
+|------|----------------|---------------|
+| KILL | CTR < 0.8% após 1.000 impressões OU gasto > 1x CPA alvo sem conversão | Pausa o criativo, libera budget |
+| SCALE | CTR > 1.5% + ROAS > meta + frequência saudável | Aumenta budget em N% (default 20%, cap 100%/dia) |
+| DUPLICATE | Winner em fadiga inicial | Clona ad set para novo público (Advantage+ Audience, lookalike, interesse) |
+| MUTATE | Promising estagnado ou Hook Fail | Gera variações alterando hook (priorizando Cognitive Dissonance), thumbnail, CTA, música, primeira frase |
+| REPOST | Orgânico subperformante | Republica em horário alternativo com legenda alterada e re-renderização |
+| REPLY | Comentário em postagem | Resposta gerada por IA (CTA suave, dúvida respondida) |
+| PARTICIPATE | Comentário em **post de terceiros** no grupo/feed do nicho | Comenta de forma natural (sem spam) p/ aumentar peso algorítmico do canal — exclusivo de Community/Groups |
+| ROTATE | Frequência **cold > 4.0** ou **warm > 7.0** por 7 dias | Troca público ou criativo para evitar burnout |
+| REFRESH_FORCED | Spend > R$20k/mês no criativo OU 2–3 semanas no ar (alto budget) | Força geração de novo conceito mesmo sem queda — janela de fadiga 2026 encurtou |
+| BUDGET_REBALANCE | ROAS de conjuntos desigual | Move budget de Loser para Winner em tempo real |
+| PAUSE_NIGHT | CPM noturno alto em nicho B2B | Pausa em horário não-comercial |
+| ENRICH_CAPI | EMQ < 8.0 detectado | Aciona pipeline para enriquecer eventos server-side com mais identificadores hasheados |
+
+### 10.2.1 Estrutura de Campanha (Meta — padrão 2026)
+- **ABO para teste de criativo** (1 ad set por criativo, ambiente controlado), depois **CBO (Advantage+ Campaign Budget) para escalar winners**.
+- **Advantage+ Audience** habilitado em todos ad sets de teste — o único variável entre ad sets é o criativo.
+- Spend limits mínimos por ad set: 10–20% do budget de campanha nos primeiros 7 dias; depois remove para Meta otimizar livre.
+- **Manter 10–25 ad variants ativas** por campanha simultaneamente para diversidade exigida pelo Andromeda.
+
+### 10.2.2 Alocação de Budget — Regra 60/30/10
+- **60%** para winners comprovados (proteger receita).
+- **30%** para tests estruturados (creative testing controlado, ABO).
+- **10%** para experimentos arriscados (novos hooks, ângulos contrarian, formatos exóticos).
+- Regra é recalculada semanalmente pelo Optimizer.
+
+### 10.2.3 Diversificação Multi-Plataforma
+- **Nenhuma plataforma deve concentrar >30% do gasto total do usuário** (a longo prazo).
+- Quando >30%, Optimizer sinaliza "risco de concentração" e sugere realocação para plataformas alternativas (rule v2.0).
+
+### 10.3 Modos de Autonomia (configurável pelo usuário)
+- **Modo Observador**: IA só sugere; humano executa.
+- **Modo Copiloto**: IA executa ações reversíveis (KILL, PAUSE); ações de gasto (SCALE) pedem aprovação.
+- **Modo Autônomo**: IA executa tudo; humano recebe digest diário.
+- **Modo Soberano**: tudo autônomo + IA pode criar novas campanhas, conectar novos produtos, sem aprovação (requer plano enterprise + cap orçamentário hard).
+
+### 10.4 Guardrails (Limites Duros)
+- RN-OPT-01: Budget máximo diário absoluto, por campanha e por conta, definido pelo usuário. **Não pode ser ultrapassado em hipótese alguma.**
+- RN-OPT-02: Aumentos de budget só ocorrem com no mínimo 24h de dados ou 50 conversões.
+- RN-OPT-03: Decréscimos podem ser instantâneos.
+- RN-OPT-04: Em caso de divergência entre dados internos (Pixel) e API da plataforma > 20%, sistema entra em modo "diagnóstico" e bloqueia escalas até reconciliar.
+- RN-OPT-05: Toda ação autônoma gera evento auditável imutável (quem-pediu, por-quê, antes, depois, reversível-sim/não).
+
+### 10.5 Resposta Automatizada a Comentários
+- IA monitora comentários em postagens orgânicas e pagas (quando API permite).
+- Classifica intenção: dúvida, objeção, prova social, troll, hate.
+- Responde de acordo com playbook configurável:
+  - **Dúvida** → resposta + CTA (link na bio / DM).
+  - **Objeção** → resposta com prova social + garantia.
+  - **Prova social positiva** → curtir + agradecer.
+  - **Troll/hate** → ocultar (não excluir, para não chamar atenção).
+- RN-OPT-06: Respostas geradas seguem tom de voz da marca configurado.
+- RN-OPT-07: Em tópicos sensíveis (saúde, dinheiro), resposta é gerada mas marcada "aguardar aprovação humana".
+
+---
+
+## 11. Módulo 7 — Compliance Guard
+
+### 11.1 Verificações Pré-Publicação
+- **Política de cada plataforma** (Meta, TikTok, Google): listas de termos proibidos atualizadas via fonte oficial + curadoria interna.
+- **Direitos autorais**: análise de música, voz, imagem (matches em bases de fingerprint).
+- **Marca registrada**: detecta uso indevido de marcas de terceiros.
+- **Claims**: bloqueia promessas absolutas ("garante emagrecimento", "renda garantida").
+- **LGPD/GDPR**: garante presença de privacy policy linkada quando aplicável.
+
+### 11.2 Score de Risco
+Cada criativo recebe Risk Score 0–100. Acima de 70 → bloqueia publicação automática, requer revisão humana.
+
+### 11.3 Regras de Negócio
+- RN-CG-01: Plataforma mantém log dos motivos de rejeição/aprovação para retro-treinar Creative Forge.
+- RN-CG-02: Atualização de listas de políticas é diária.
+- RN-CG-03: Em caso de rejeição da plataforma (Meta etc.), motivo é parseado e alimentado no Compliance Guard.
+
+---
+
+## 12. Módulo 8 — Financial Ops
+
+### 12.1 Cofre de Orçamento
+- Usuário define caps: diário, semanal, mensal, por canal, por produto, por persona.
+- Sistema reserva budget como em um cofre: se gastou 80%, alerta; 100% → pausa tudo do escopo.
+
+### 12.2 ROI Consolidado Multi-Plataforma
+- Agrega gastos de TODAS as plataformas de ads + comissões recebidas de TODAS as plataformas de venda.
+- Conversão cambial automática (se aplicável).
+- Cálculo de lucro líquido: comissão - custo ads - custo IA - taxa NextFace.
+
+### 12.3 Regras de Negócio
+- RN-FIN-01: Gastos só podem ser autorizados se houver saldo na conta de ads associada.
+- RN-FIN-02: Conciliação diária com extratos de plataformas.
+- RN-FIN-03: Relatório fiscal exportável (compatível com regime MEI/Simples).
+
+---
+
+## 13. Módulo 9 — Governance & Audit
+
+### 13.1 RBAC (Role-Based Access Control)
+| Papel | Permissões |
+|-------|-----------|
+| Owner | Tudo + billing + delete account |
+| Admin | Tudo exceto billing/delete |
+| Manager | Criar/editar campanhas, ver finanças |
+| Creative | Criar/editar criativos, ver métricas básicas |
+| Finance | Ver orçamento, aprovar gastos, ver relatórios |
+| Viewer | Somente leitura |
+
+### 13.2 Trilha de Auditoria
+- Toda ação humana ou da IA: who, what, when, where, why, outcome.
+- Imutável (append-only).
+- Exportável para CSV/JSON.
+
+### 13.3 Aprovações
+- Workflow configurável: ações de tipo X exigem aprovação de papel Y.
+- Notificação multi-canal (in-app, e-mail, WhatsApp, Telegram).
+
+---
+
+## 13A. Módulo 10 — Channel Bootstrap (Criação e Crescimento de Canais do Zero)
+
+### 13A.1 Objetivo
+Permitir que o usuário tenha **canais novos**, criados do zero, com identidade visual, posicionamento e plano editorial inteiramente planejados pela IA — e crescidos com campanhas de aquisição de seguidores executadas automaticamente — para vender infoprodutos de forma sustentável e diversificada (sem depender de uma única conta/perfil que possa ser banida).
+
+### 13A.2 Plataformas-Alvo de Bootstrap
+- **Instagram (Business/Creator)** — perfis temáticos por nicho.
+- **Facebook Pages** — páginas conectadas ao Business Manager do usuário.
+- **TikTok for Business** — contas com Content Posting API habilitada.
+- **YouTube** — canais novos no Google account do usuário, com upload via API.
+- **Threads** e demais (v2+).
+
+### 13A.3 Pipeline de Criação do Canal
+1. **Briefing automatizado**: IA pergunta ao usuário (poucos campos) — nicho-alvo, público (idade, gênero, geo, dores), produto(s) que pretende promover, tom de voz desejado, tabu (o que NÃO falar).
+2. **Pesquisa de mercado**: IA varre canais top do nicho, identifica gaps (temas pouco explorados), pega referências visuais.
+3. **Posicionamento (Brand DNA)**: IA gera proposta de nome do canal, @handle (com checagem de disponibilidade via APIs), bio, descrição, paleta de cores, tipografia, estilo de thumbnail/cover.
+4. **Identidade visual**: gera avatar, banner, capas de Stories destaque, watermark, pacote de templates de thumbnail/Reels.
+5. **Aprovação humana**: usuário vê 3 propostas, escolhe ou pede iteração.
+6. **Provisionamento**:
+   - **Instagram**: usuário cria o perfil no app (passo manual exigido pelas políticas Meta), depois converte para Business via Graph API e vincula à Business Manager → daí em diante, tudo via API.
+   - **Facebook Page**: criada via Graph API e vinculada à BM.
+   - **TikTok**: usuário cria a conta no app oficial, conecta via TikTok for Business; daí em diante, postagens via Content Posting API.
+   - **YouTube**: usuário cria o canal na conta Google (passo manual), depois sistema obtém Channel ID via API e passa a publicar via Upload API.
+   - A plataforma documenta claramente quais passos são manuais (impostos pelas políticas oficiais) e o sistema instrui o usuário em uma tela passo a passo.
+7. **Setup inicial automatizado**: bio, links (linktree-like próprio), pinned posts, sequência de Stories destaque, vídeo de boas-vindas — tudo gerado e publicado pela IA.
+
+### 13A.4 Plano Editorial Planejado por IA
+Para cada canal recém-criado, a IA monta um **calendário editorial de 90 dias** com:
+- Frequência ótima por plataforma (ex.: TikTok 1–3x/dia; Reels 1–2x/dia; YouTube Shorts 1x/dia + 1 long-form/semana).
+- Mix de conteúdo por fase:
+  - **Fase 1 (Dias 1–30 — Ignição)**: 80% conteúdo de tração viral (hooks fortes, sem vender), 20% educacional. Foco em ganhar primeiros 1k seguidores.
+  - **Fase 2 (Dias 31–60 — Autoridade)**: 50% viral, 30% educacional aprofundado, 20% prova social/casos. Foco em retenção e watch time.
+  - **Fase 3 (Dias 61–90 — Conversão)**: 40% viral, 30% educacional, 20% prova social, 10% oferta suave do infoproduto. Início de monetização.
+- Pilares de conteúdo (3–5 temas) fixados no DNA do canal.
+- Trending audio/hashtag rotation por nicho, monitorado em tempo real.
+
+### 13A.5 Campanhas de Aquisição de Seguidores
+- **Modo orgânico turbinado**: IA otimiza horário, hashtag, hook, primeira frase do Reels/TikTok para algoritmo descoberta — sem custo de mídia.
+- **Modo pago (Follow Campaign)** — quando o usuário libera budget:
+  - **Meta**: campanhas com objetivo "Engagement" + criativos otimizados para Page Likes e Profile Visits → seguidores.
+  - **TikTok Ads**: campanhas "Follower Growth" / "Community Interaction" usando criativos UGC-like.
+  - **YouTube Ads**: campanhas de Shorts in-feed com CTA "se inscreva" + Discovery ads → inscritos.
+- Cada Follow Campaign tem **CAC alvo de seguidor** definido pelo usuário (ex.: R$0,15 por follower em IG; R$0,30 em YT).
+- IA mata follows campaign automaticamente se CAC sobe acima do alvo + tolerância.
+
+### 13A.6 Frota de Canais (Channel Fleet)
+Usuários com plano Agency/Enterprise podem operar **dezenas de canais simultâneos** (uma frota), cada um com nicho/persona distinto:
+- Dashboard "Fleet View": visão agregada de todos os canais (followers, growth rate, eng. rate, CAC follower, conversões para o produto).
+- **Diversificação de risco**: se um canal cair em shadowban, outros mantêm a operação.
+- **Cross-pollination**: criativos que viralizam em um canal são adaptados (não copiados literalmente, para evitar duplicate content) e testados em outros canais semelhantes.
+
+### 13A.7 Métricas de Sucesso do Bootstrap
+- **Time-to-1k followers**: tempo para o canal atingir 1.000 seguidores (meta: <30 dias em nichos quentes).
+- **Engagement rate** nas 4 primeiras semanas (meta: ≥5% IG/TikTok, ≥3% YouTube).
+- **Survival rate**: % de canais que sobrevivem >90 dias sem ban/shadowban (meta: ≥85%).
+- **Conversion start**: tempo até o primeiro infoproduto vendido a partir do canal novo (meta: <60 dias).
+
+### 13A.8 Regras de Negócio
+- RN-CB-01: Sistema **nunca** automatiza criação de identidade falsa ou perfis fakes; cada canal opera sob a identidade real (pessoal ou de marca) declarada pelo usuário.
+- RN-CB-02: Cada canal é "propriedade do usuário" desde o nascimento — credenciais ficam na conta dele. NextFace é operadora, não proprietária.
+- RN-CB-03: Bootstrap respeita políticas de cada plataforma quanto a contas/canais novos (limites de postagem reduzidos nos primeiros 7–14 dias, sem links agressivos, sem hashtags banidas).
+- RN-CB-04: Sistema detecta sinais de "warm-up" necessário e ajusta cadência automaticamente (ex.: TikTok novo: começa com 1 post/dia, escala progressivamente).
+- RN-CB-05: Para canais novos, monetização (links de afiliado, CTA forte) só é introduzida após atingir critério mínimo (ex.: 500 seguidores e 3 vídeos com >1k views), salvo override do usuário.
+- RN-CB-06: Identidade visual e nome do canal podem ser totalmente customizados pelo usuário a qualquer momento; IA apenas sugere — nunca decide unilateralmente o branding.
+- RN-CB-07: Em caso de queda abrupta de alcance (>60% em 48h), módulo aciona análise "shadowban suspeito" + pausa de postagens novas para diagnóstico.
+- RN-CB-08: A frota de canais respeita um teto por plano (Starter: 3, Pro: 10, Agency: 50, Enterprise: ilimitado) — alinhado ao item 16.1.
+
+### 13A.9 Casos de Uso
+
+#### UC-Bootstrap-01: "Quero começar do zero no nicho de finanças"
+1. Usuário no plano Pro escolhe "Novo Canal" → preenche briefing (nicho, persona).
+2. IA gera proposta de canal: nome "@dinheirosem_complicar", bio, paleta, 3 pilares de conteúdo, mockups de Reels.
+3. Usuário aprova, cria o perfil IG seguindo wizard guiado, conecta à Business Manager.
+4. Em 24h, canal já tem: bio configurada, 5 Stories destaque, 3 Reels publicados, plano editorial de 90 dias pronto.
+5. Em 7 dias, IA acumula dados de horário/hook ótimos; em 30 dias, canal atinge 1.2k seguidores orgânicos + 800 via Follow Campaign paga (R$120 gastos).
+
+#### UC-Bootstrap-02: "Frota multi-nicho para minha agência"
+1. Agência cria 12 canais simultâneos, 4 por nicho (saúde, finanças, relacionamento).
+2. IA gerencia frota: produz conteúdo por canal, evita repetição entre eles, varia ângulos.
+3. Dashboard Fleet mostra: quais canais estão crescendo, quais estão em platô (sugere mutação editorial), quais já podem iniciar monetização.
+
+### 13A.10 Critério YPP-Ready (YouTube Partner Program)
+Para canais YouTube no Bootstrap, o sistema define gate de "graduação" quando o canal atinge **500 subscribers + 3 vídeos públicos + 3.000 watch hours OU 3 milhões de views em Shorts nos últimos 90 dias** — entrando como elegível ao YouTube Partner Program (regra 2026). Channel Bootstrap orienta automaticamente o canal para este gate.
+
+---
+
+## 13B. Módulo 11 — Messaging Funnel (WhatsApp + Telegram)
+
+### 13B.1 Objetivo
+Tratar **WhatsApp e Telegram** como canais de funil de vendas (não apenas notificações), aproveitando a compressão do funil tradicional para "Ad → Conversa → Qualificação IA → Compra".
+
+### 13B.2 Por que entra no PRD
+- Open rate do WhatsApp: ~98%; CTR ~45%.
+- Click-to-WhatsApp ads: CPL 24% menor que campanhas de conversão para landing pages tradicionais.
+- Telegram domina nichos de educação/cripto/finanças no Brasil — comunidades VIP pagas são padrão.
+
+### 13B.3 Subcanais Suportados
+- **WhatsApp Business Platform** (Cloud API): broadcasts dirigidos a opt-ins, chatbot, click-to-chat tracking.
+- **WhatsApp Click-to-WhatsApp Ads** (Meta): anúncios que abrem chat direto, suportados pela mesma credencial Meta do §7.6.
+- **Telegram Bots + Canais + Grupos**: API oficial; bots para qualificação, canais broadcast, grupos para comunidade.
+
+### 13B.4 Fluxos Padrão
+1. **Lead Capture**: ad ou link em bio → click-to-WhatsApp → bot recebe lead, classifica intenção, captura nome/e-mail/dor principal.
+2. **Sequência de aquecimento**: 3–7 mensagens espaçadas com micro-conteúdo (vídeo curto, áudio, prova social).
+3. **Pitch**: oferta + bônus + escassez.
+4. **Recuperação**: para "checkout abandonado", sequência de 3 mensagens em 24h.
+5. **Comunidade pós-venda**: cliente entra em grupo VIP (Telegram ou WhatsApp Community).
+
+### 13B.5 Regras de Negócio
+- RN-MSG-01: Toda mensagem broadcast em WhatsApp requer **opt-in documentado** (LGPD + políticas Meta).
+- RN-MSG-02: Limites de mensagens iniciadas por negócio respeitam tiers da Meta (Cloud API).
+- RN-MSG-03: Conversa qualificada como "lead quente" pelo bot pode acionar SCALE em campanha de origem (sinal de qualidade).
+- RN-MSG-04: Templates de mensagem (Meta-approved) são gerados e submetidos pela IA, com fallback humano para revisão antes da submissão.
+- RN-MSG-05: Métricas próprias: taxa de resposta, tempo médio até resposta, taxa de conversão por sequência, dropout por etapa.
+- RN-MSG-06: Telegram channels devem ter política de moderação configurada — IA modera flood, links externos e spam.
+
+### 13B.6 Métricas-Chave
+- **CPL via Click-to-WhatsApp**.
+- **Conversation-to-sale rate** (% conversas que viram venda).
+- **Time-to-first-response** (bot deve responder < 30s).
+- **Retention community 30d** (% que segue ativo após 30d).
+
+---
+
+## 13C. Módulo 12 — Community Marketing (Grupos, Fóruns e Comunidades)
+
+### 13C.1 Objetivo
+Operar **grupos do Facebook, comunidades do Instagram, canais e grupos do Telegram, comunidades do WhatsApp** como motores orgânicos sustentáveis de tráfego e venda — não como spam, mas como **construção de autoridade**.
+
+### 13C.2 Por que entra no PRD
+- Facebook Groups foram repriorizados pela Meta em 2026 como **canal orgânico nº1 da plataforma**.
+- Posts em grupos nicho (<2k membros) superam posts em grupos gigantes (>200k) em todas as métricas relevantes.
+- Comprovação de mercado: cursos individuais com R$27k em vendas a partir de um único grupo de 4k membros.
+
+### 13C.3 Operações Suportadas
+- **Mapeamento de grupos**: IA escaneia Facebook Search e lista grupos relevantes ao nicho do usuário, com score de qualidade (membros ativos, % posts engajados, política de divulgação).
+- **Adesão e participação**: o usuário (não a IA, por política) entra nos grupos; IA propõe posts e comentários sob aprovação ou em Modo Autônomo.
+- **Calendário de participação**: para cada grupo aprovado, IA gera plano semanal de: 1 post de valor (sem CTA), 2 comentários úteis em posts de terceiros, 1 post oportunista (com link/CTA suave) — respeitando regras do grupo.
+- **Telegram channels próprios**: criados via Channel Bootstrap (módulo 10) e operados como mídia primária.
+- **WhatsApp Communities** (do dono do produto): IA modera, publica calendário de conteúdo, modera duvidas.
+
+### 13C.4 Regras de Negócio
+- RN-COM-01: **Participation rule** — algoritmo do FB Group 2026 penaliza contas que só postam. Sistema obriga taxa mínima de comentários/reactions sobre posts de terceiros (default: 3 comentários úteis para cada 1 post próprio).
+- RN-COM-02: IA respeita as **regras de cada grupo** (extraídas da descrição) — se grupo proíbe links, sistema bloqueia geração com link.
+- RN-COM-03: **Não criar perfis falsos** para inflar engagement (proibido por design).
+- RN-COM-04: Conteúdo postado em grupos é **adaptado** (não copiado) do calendário editorial principal do canal.
+- RN-COM-05: Sistema **mede ROI por grupo** (cliques de bio que vieram de comentário no grupo X → vendas) e prioriza esforço nos top grupos.
+- RN-COM-06: Detecção de "expulsão/ban" do grupo → marca grupo como "perdido" e remove da rotação automaticamente.
+- RN-COM-07: Para infoprodutos sensíveis (saúde, finanças), posts em comunidade passam por Compliance Guard antes de irem ao ar.
+
+### 13C.5 Métricas-Chave
+- **Score de qualidade do grupo** (composto: membros ativos, taxa de engajamento, abertura para links).
+- **Engagement-to-click rate** (% de membros que viram o post e clicaram).
+- **Lifetime value por grupo** (vendas atribuídas).
+- **Participação saudável** (mantém ratio comentários:posts próprios).
+
+---
+
+## 13D. Módulo 13 — Launch Mode (Fórmula de Lançamento Brasileira)
+
+### 13D.1 Objetivo
+Suportar o modelo dominante do mercado brasileiro de infoprodutos: **lançamentos sazonais** (modelo "Fórmula de Lançamento" popularizado por Erico Rocha e adotado em massa), em complemento ao modo **Always-On** (perpétuo).
+
+### 13D.2 Por que entra no PRD
+- Modelo padrão de mercado BR — usuários alvo já operam em ciclos de lançamento.
+- Permite picos de receita de 6/7 dígitos em janelas curtas (5–10 dias), com mecânica psicológica de antecipação, escassez e prova social.
+- Sistema sem Launch Mode é inadequado ao mercado brasileiro.
+
+### 13D.3 Fases do Lançamento (configurável)
+1. **Pré-lançamento (Captação)** — 7–21 dias:
+   - Foco em **lead capture** via vídeos de conteúdo (CPL) + click-to-WhatsApp.
+   - Criativos focam em **dor + transformação** (sem oferta).
+   - Channel Bootstrap pode esquentar canais novos especificamente para o lançamento.
+2. **Aquecimento (Conteúdo de Valor)** — 5–10 dias:
+   - 3–4 vídeos/aulas gratuitas entregues à lista (e-mail + WhatsApp + Telegram).
+   - IA gera conteúdo das aulas a partir do material-fonte do usuário.
+   - Métricas: open rate, watch rate por aula, perguntas no chat (sinais de intenção).
+3. **Janela de Vendas (Cart Open)** — 4–7 dias:
+   - Anúncios de remarketing pesado para quem assistiu aulas.
+   - Sequência de mensagens diárias (e-mail/WhatsApp/Telegram) com objeções, depoimentos, bônus crescentes.
+   - **Escassez progressiva** (lotes, preço subindo, vagas).
+4. **Cart Close + Pós-Lançamento**:
+   - Última hora: blast final + lives.
+   - Pós: onboarding do cliente; recuperação de quem abandonou; relatório de aprendizados para próximo lançamento.
+
+### 13D.4 Recursos Dedicados
+- **Template de funil de lançamento** pré-configurado (escolha "lançamento de 14 dias", "21 dias", "express 7 dias").
+- **Calendário automatizado** dia-a-dia com peças necessárias (criativos, e-mails, mensagens, lives sugeridas).
+- **Cofre de orçamento específico** do lançamento (separado do always-on).
+- **Métricas de lançamento**: CPL pré-lançamento, conversion rate da janela, ROI total do lançamento, recompra/upsell pós.
+
+### 13D.5 Regras de Negócio
+- RN-LM-01: Launch Mode pode coexistir com Always-On do mesmo usuário (orçamentos isolados; canais podem ser compartilhados ou exclusivos).
+- RN-LM-02: Compliance Guard intensifica checagem na janela de vendas (escassez não pode ser falsa — não usar "últimas 3 vagas" se há 300).
+- RN-LM-03: Sistema bloqueia automaticamente claims absolutos no script de aula gratuita.
+- RN-LM-04: Pós-lançamento, sistema gera relatório executivo com lições aplicáveis ao próximo ciclo (alimenta RAG de Creative Forge).
+
+### 13D.6 Métricas de Sucesso
+- **CPL pré-lançamento** dentro do meta do usuário.
+- **% lead-to-buyer** na janela de vendas.
+- **Faturamento total do lançamento** (R$).
+- **CAC do lançamento vs always-on** (comparativo).
+
+---
+
+## 14. Fluxos de Usuário (Casos de Uso Principais)
+
+### 14.1 UC-01: Onboarding do Operador Solo
+1. Usuário cria conta → escolhe nicho (até 3) → define orçamento mensal.
+2. **Wizard de Integrações** guia conexão das credenciais (item 7.6):
+   - Meta: OAuth com Business Manager → seleção de páginas/IG/ad accounts → captura de System User Token + Pixel.
+   - YouTube/Google: OAuth → seleção de canal e (opcional) conta Google Ads.
+   - TikTok for Business: inserção de App ID/Secret + Access Token + Advertiser ID.
+   - Plataforma de venda (Kiwify/Hotmart etc.): API key.
+3. Sistema executa **health check** e exibe o que detectou (X páginas, Y canais, Z ad accounts).
+4. Usuário decide: **operar canais existentes** ou **criar canais do zero** (Channel Bootstrap, item 13A) ou ambos.
+5. Define tom de voz da marca, persona-alvo, gatilhos preferidos.
+6. Escolhe modo de autonomia (default: Copiloto).
+7. Sistema sugere top-3 produtos para começar → usuário aprova.
+8. Em ≤30min (operar existentes) ou ≤24h (bootstrap completo), primeiras campanhas/canais estão no ar.
+
+### 14.2 UC-02: Detecção de Viral Inesperado
+1. Criativo C-A123 publicado em TikTok orgânico.
+2. Em 4h, atinge sinais de viral precoce.
+3. Sistema notifica usuário e, em Modo Autônomo, escala automaticamente budget em variação paga + replica em Reels e Shorts.
+4. Em 48h, gera 5 variações com mesma "DNA criativa".
+5. Quando fadiga detectada, sistema rotaciona ângulos.
+
+### 14.3 UC-03: Pivô de Produto
+1. Produto P1 satura no nicho do usuário.
+2. Discovery sugere P2 com Hot Score 87 e dossiê.
+3. Sistema, em Modo Soberano, migra orçamento gradualmente de P1 para P2 (canary 10% → 30% → 70%).
+4. Notifica usuário com explicação textual.
+
+### 14.4 UC-04: Resposta a Crise de Conta Banida
+1. Conta de ads bloqueada pela Meta.
+2. Sistema detecta via API + falhas de publicação.
+3. Roteia automaticamente para conta-reserva (se configurada) ou pausa e alerta.
+4. Gera relatório de motivo provável (criativo X, claim Y, frequência Z) e sugere correção.
+
+---
+
+## 15. Regras de Negócio Gerais (Cross-Módulo)
+
+- RN-GEN-01: Idempotência em todas operações que envolvem custo (publicar, escalar).
+- RN-GEN-02: Toda decisão da IA deve poder ser revertida em ≤1 clique por 24h após executada.
+- RN-GEN-03: Modo "férias" pausa todas ações autônomas mas mantém coleta de dados.
+- RN-GEN-04: Plataforma é multi-tenant; isolamento de dados entre contas é absoluto (nenhum dado de usuário A alimenta diretamente modelo aplicado a usuário B sem anonimização e opt-in).
+- RN-GEN-05: Histórico mínimo retido: 24 meses; usuário pode solicitar exclusão (LGPD).
+- RN-GEN-06: SLA do agente autônomo: disponibilidade 99.5%; em caso de indisponibilidade > 1h, alerta proativo.
+
+---
+
+## 16. Modelo de Monetização (Lógica de Negócio)
+
+### 16.1 Planos
+| Plano | Preço | Criativos/mês | Contas conectadas | Canais Bootstrap | Launch Mode | Messaging Funnel | Community | Modo Soberano | Suporte |
+|-------|-------|---------------|-------------------|------------------|-------------|------------------|-----------|---------------|---------|
+| Starter | R$ 197 | 50 | 3 | 3 | 1 lançamento/trim | WhatsApp básico | — | Não | E-mail |
+| Pro | R$ 597 | 300 | 10 | 10 | Ilimitado | WhatsApp + Telegram | FB Groups (10) | Sim (cap R$10k/mês) | Chat |
+| Agency | R$ 1.997 | 1.500 | 50 | 50 | Ilimitado + multi-marca | Tudo + multi-WABA | Ilimitado | Sim (cap R$100k/mês) | Prioritário + CSM |
+| Enterprise | Sob consulta | Ilimitado | Ilimitado | Ilimitado | Ilimitado | Tudo + white-label | Ilimitado | Sim (sem cap) | Dedicado |
+
+### 16.2 Cobranças Adicionais
+- **Pacote de tokens de IA**: cada plano inclui X tokens; excedente cobrado.
+- **Performance fee opcional**: 5% sobre lucro líquido acima de baseline (modelo alternativo, opt-in).
+
+### 16.3 Regras de Negócio
+- RN-MON-01: Trial de 7 dias com cap de gasto de R$ 500.
+- RN-MON-02: Downgrade só efetiva no próximo ciclo.
+- RN-MON-03: Inadimplência > 7 dias → modo somente-leitura; > 30 dias → suspensão.
+
+---
+
+## 17. Não-Funcionais (Resumo executivo; detalhamento no PRD técnico)
+
+- **Latência**: ações autônomas devem ocorrer em ≤2min após gatilho.
+- **Escalabilidade**: suportar 100k criativos ativos simultâneos e 10M eventos/dia já no v1.
+- **Privacidade**: LGPD/GDPR by design; criptografia em trânsito e em repouso; hashing de PII.
+- **Auditabilidade**: 100% das ações automáticas com log explicável.
+- **Internacionalização**: PT-BR (v1), EN, ES (v2).
+
+---
+
+## 18. Roadmap de Lógica de Negócio
+
+### 18.1 v1.0 (MVP — 90 dias)
+- Discovery (Kiwify + Hotmart).
+- Creative Forge (copy + imagem + UGC patterns + Cognitive Dissonance hooks + layered hooks).
+- **Conexão de credenciais Meta + YouTube + WhatsApp Cloud API** (módulo 7.6) — onboarding completo.
+- Auto-Publisher: **Meta Ads (ABO+CBO, Advantage+ Audience) + Instagram/Facebook orgânico + YouTube Shorts upload + Click-to-WhatsApp ads**.
+- **Channel Bootstrap v1** — criação guiada de canal Instagram + Facebook Page + canal YouTube com plano editorial automatizado.
+- **Messaging Funnel v1** — WhatsApp Cloud API com templates + bot básico.
+- Pixel próprio + **CAPI obrigatório com EMQ ≥ 8.0**.
+- Analytics descritivo + classificador de criativo + benchmarks de retenção (70–85%).
+- Optimizer: KILL, SCALE, ROTATE, REFRESH_FORCED + regra 60/30/10.
+- Modos Observador e Copiloto.
+
+### 18.2 v1.5 (+60 dias)
+- **TikTok for Business (ads + orgânico)** com Content Posting API.
+- **Launch Mode (Fórmula de Lançamento)** — templates 7/14/21 dias.
+- Channel Bootstrap v2: TikTok + plano editorial de 90 dias inteiro.
+- **Follow Campaigns** (aquisição de seguidores paga em Meta e TikTok).
+- Vídeo gerado por IA (HeyGen/Synthesia + Veo 3.1/Sora 2 wrapper).
+- **Community Marketing v1** — Facebook Groups (mapeamento + participation rule) + Telegram channels.
+- Optimizer: MUTATE, DUPLICATE, PARTICIPATE.
+- Modo Autônomo.
+- Resposta a comentários.
+
+### 18.3 v2.0 (+90 dias)
+- Google Ads completo (Search/Display/YouTube Ads), Kwai.
+- **Frota de canais (Channel Fleet)** com Fleet View e cross-pollination.
+- **Community Marketing v2** — WhatsApp Communities + moderação IA.
+- Modelo preditivo (fadiga, ROAS).
+- Modo Soberano.
+- Multi-tenant agency mode.
+- Pixel server-side completo (CAPI/Events API com one-click setup).
+- Regra de **diversificação ≤30% por plataforma** ativa no dashboard.
+
+### 18.4 v2.5 e além
+- Marketplace de "DNAs criativos vencedores" (compartilhamento opt-in).
+- Co-piloto de negociação com produtores.
+- Geração de funis completos (landing + e-mail + remarketing).
+
+---
+
+## 19. Riscos e Mitigações (lógica de negócio)
+
+| Risco | Mitigação |
+|-------|-----------|
+| Plataformas mudam políticas/APIs | Camada de abstração + monitoramento de breaking changes |
+| IA gera conteúdo enganoso → conta banida | Compliance Guard rigoroso + Risk Score |
+| Custo de IA excede receita | Cap de tokens por plano + cache agressivo de gerações |
+| Concorrentes copiam | Diferencial = qualidade do loop OODA + dados acumulados |
+| Regulação de IA generativa em marketing | Acompanhamento jurídico contínuo + selo de transparência |
+| Saturação de criativos similares entre clientes | Diversificação forçada por seed + ângulo dinâmico |
+
+---
+
+## 20. Glossário de Termos de Negócio
+
+- **Hot Score**: índice 0–100 de potencial de venda de um produto.
+- **DNA Criativo**: linhagem de variações derivadas de um criativo-mãe.
+- **Loop OODA**: ciclo Observar-Orientar-Decidir-Agir.
+- **Modo Soberano**: nível máximo de autonomia da IA.
+- **Hit Viral Precoce**: sinal antecipado (≤6h) de potencial viral.
+- **Fadiga (Fatigue)**: queda de performance por excesso de exposição.
+- **Bridge Page**: página intermediária controlada pela plataforma entre anúncio e produto.
+- **Channel Bootstrap**: processo guiado por IA de criar e ativar um canal/perfil novo do zero.
+- **Brand DNA**: pacote completo de identidade visual + posicionamento + tom de voz gerado pela IA para um canal.
+- **Follow Campaign**: campanha paga focada em ganho de seguidores/inscritos.
+- **Channel Fleet**: conjunto de canais operados em paralelo por um mesmo usuário/agência.
+- **Health Check de Integração**: verificação periódica (a cada 6h) da validade de tokens e permissões das credenciais conectadas.
+- **System User Token**: token de longa duração emitido pela Business Manager Meta para automação server-to-server.
+- **Andromeda**: algoritmo da Meta (2026) que usa o criativo como sinal primário de delivery.
+- **Originality Score**: índice usado pelo Instagram para penalizar conteúdo reciclado/reposted.
+- **Cognitive Dissonance Hook**: padrão de abertura de vídeo que cria inconsistência cognitiva — hook nº1 em 2026.
+- **Layered Hook**: hook que combina visual + áudio + texto sincronizados nos 3 primeiros segundos.
+- **EMQ (Event Match Quality)**: nota 0–10 atribuída pelo Meta ao matching server-side de eventos CAPI.
+- **One-Click CAPI**: setup zero-config do Meta Conversions API liberado em abr/2026.
+- **Advantage+ Audience**: público amplo otimizado por IA da Meta, padrão de teste de criativo em 2026.
+- **60/30/10**: alocação padrão de budget (winners / tests / experimentos).
+- **Click-to-WhatsApp Ads**: anúncio Meta que, ao ser clicado, abre uma conversa direta no WhatsApp do anunciante.
+- **Launch Mode**: modo operacional para Fórmula de Lançamento brasileira (pré-lançamento → aquecimento → cart open → cart close).
+- **Always-On**: modo operacional perpétuo (oposto ao Launch Mode).
+- **YPP-Ready**: critério de elegibilidade ao YouTube Partner Program (500 subs + 3M Shorts views/90d ou 3.000 watch hours).
+- **Participation Rule**: regra de comentar/reagir em posts de terceiros para manter peso algorítmico em Facebook Groups.
+- **Refresh Forced**: ação do Optimizer que troca conceito criativo por janela (2–3 semanas em alto budget) mesmo sem queda de performance.
+
+---
+
+## 21. Premissas e Restrições
+
+### Premissas
+- Usuário possui contas ativas e em boa reputação nas plataformas conectadas.
+- APIs das plataformas mantêm SLAs documentados.
+- IA generativa de mercado mantém qualidade ≥ atual (Sonnet 4.6 / GPT-4o-equivalente).
+
+### Restrições
+- Não opera em nichos proibidos: adulto, armas, drogas, esquemas piramidais, claims médicos não-aprovados.
+- Não substitui responsabilidade legal do usuário pelo conteúdo publicado em seu nome.
+
+---
+
+## 22. Critérios de Aceite do PRD
+
+Este PRD será considerado aprovado para iniciar a fase técnica quando:
+1. Todos os 9 módulos forem revisados e aprovados pelo PO.
+2. Regras de Negócio críticas (RN-OPT, RN-FIN, RN-CG, RN-PIX) forem validadas com especialista jurídico.
+3. Roadmap v1.0 for assinado pelo time de engenharia como viável.
+4. Modelo de monetização for validado contra benchmark de mercado.
+
+---
+
+**Próximo passo**: após validação deste PRD de lógica de negócio, criar `tecnico.prd` com arquitetura MVVM, contratos de BFF, schema Prisma/PostgreSQL, fluxos SSR Next.js + Tailwind, padrões de clean code e estratégia de reaproveitamento (design system, hooks, repositories, use-cases, view-models).
