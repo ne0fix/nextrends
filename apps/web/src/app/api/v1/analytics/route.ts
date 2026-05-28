@@ -1,13 +1,14 @@
 export const dynamic = 'force-dynamic';
+import { type NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { AnalyticsView } from '@/views/analytics/AnalyticsView';
 
-export default async function AnalyticsPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
+export async function GET(req: NextRequest) {
   const session = await auth();
-  const orgId = session?.user?.orgId ?? '';
-  const params = await searchParams;
-  const days = Number(params.days ?? 7);
+  if (!session?.user?.orgId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const orgId = session.user.orgId;
+  const days = Number(req.nextUrl.searchParams.get('days') ?? 7);
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
   const [metrics, topCreatives, recentActions, campaignStats] = await Promise.all([
@@ -22,12 +23,16 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
       select: { id: true, angle: true, hookType: true, format: true, riskScore: true, createdAt: true },
     }),
     prisma.optimizerAction.findMany({
-      where: { orgId },
+      where: { orgId, executedAt: { gte: since } },
       orderBy: { executedAt: 'desc' },
       take: 10,
       select: { id: true, type: true, targetType: true, reason: true, executedAt: true },
     }),
-    prisma.campaign.groupBy({ by: ['status'], where: { orgId }, _count: true }),
+    prisma.campaign.groupBy({
+      by: ['status'],
+      where: { orgId },
+      _count: true,
+    }),
   ]);
 
   const spend = Number(metrics._sum.spend ?? 0);
@@ -36,20 +41,20 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
   const clicks = metrics._sum.clicks ?? 0;
   const conversions = metrics._sum.conversions ?? 0;
 
-  return (
-    <AnalyticsView
-      days={days}
-      summary={{
-        spend, revenue,
-        roas: spend > 0 ? revenue / spend : 0,
-        impressions, clicks,
-        ctr: impressions > 0 ? (clicks / impressions) * 100 : 0,
-        conversions,
-        cpa: conversions > 0 ? spend / conversions : 0,
-      }}
-      topCreatives={topCreatives.map(c => ({ ...c, riskScore: c.riskScore ? Number(c.riskScore) : null }))}
-      recentActions={recentActions.map(a => ({ ...a, executedAt: a.executedAt?.toISOString() ?? null }))}
-      campaignStats={campaignStats.map(s => ({ status: s.status, count: s._count }))}
-    />
-  );
+  return NextResponse.json({
+    period: { days, since },
+    summary: {
+      spend,
+      revenue,
+      roas: spend > 0 ? revenue / spend : 0,
+      impressions,
+      clicks,
+      ctr: impressions > 0 ? (clicks / impressions) * 100 : 0,
+      conversions,
+      cpa: conversions > 0 ? spend / conversions : 0,
+    },
+    topCreatives,
+    recentActions,
+    campaignStats: campaignStats.map(s => ({ status: s.status, count: s._count })),
+  });
 }

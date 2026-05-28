@@ -1,8 +1,29 @@
-export default function CampanhasPage() {
+export const dynamic = 'force-dynamic';
+import { auth } from '@/lib/auth';
+import { prisma } from '@/lib/db';
+import { CampaignsView } from '@/views/campaigns/CampaignsView';
+
+export default async function CampaignsPage() {
+  const session = await auth();
+  const orgId = session?.user?.orgId ?? '';
+
+  const campaigns = await prisma.campaign.findMany({
+    where: { orgId },
+    orderBy: { status: 'asc' },
+    include: { _count: { select: { adSets: true } } },
+  });
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-      <h1 className="text-2xl font-bold mb-2">Campanhas</h1>
-      <p className="text-gray-400 text-sm">Em breve</p>
-    </div>
+    <CampaignsView
+      campaigns={campaigns.map(c => ({
+        id: c.id,
+        name: c.name,
+        status: c.status,
+        budgetDaily: Number(c.budgetDaily),
+        objective: c.objective,
+        channel: c.channel,
+        _count: c._count,
+      }))}
+    />
   );
 }

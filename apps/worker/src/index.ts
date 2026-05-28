@@ -45,7 +45,7 @@ async function getContainer() {
     generateCreative: { execute: (input: unknown) => callWebApi('/api/v1/creatives', input) },
     publishToChannel: { execute: (input: unknown) => callWebApi('/api/v1/publishing/publish', input) },
     healthCheck: { execute: (orgId: string) => callWebApi('/api/v1/integrations/health-check', { orgId }) },
-    runOodaLoop: { execute: async (_input: unknown) => { logger.info('OODA loop stub — Sprint 3'); } },
+    runOodaLoop: { execute: (input: unknown) => callWebApi('/api/v1/optimizer', input) },
     getAllOrgIds,
   };
 }

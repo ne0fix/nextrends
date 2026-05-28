@@ -11,6 +11,9 @@ async function getInfrastructure() {
   const { ComplianceCheckerGatewayImpl } = await import('../infrastructure/compliance/ComplianceCheckerGatewayImpl');
   const { MetaOAuthGatewayImpl } = await import('../infrastructure/integrations/MetaOAuthGatewayImpl');
   const { MetaPublishingGatewayImpl } = await import('../infrastructure/publishing/MetaPublishingGatewayImpl');
+  const { PrismaMetricsRepository } = await import('../infrastructure/optimizer/PrismaMetricsRepository');
+  const { PrismaOptimizerActionRepository } = await import('../infrastructure/optimizer/PrismaOptimizerActionRepository');
+  const { PrismaCampaignRepository } = await import('../infrastructure/campaigns/PrismaCampaignRepository');
 
   const integrationRepo = new PrismaIntegrationRepository(prisma);
   const creativeRepo = new PrismaCreativeRepository(prisma);
@@ -21,6 +24,9 @@ async function getInfrastructure() {
   const complianceGateway = new ComplianceCheckerGatewayImpl(aiGateway);
   const metaOauth = new MetaOAuthGatewayImpl();
   const publishingGateway = new MetaPublishingGatewayImpl();
+  const metricsRepo = new PrismaMetricsRepository(prisma);
+  const optimizerActionRepo = new PrismaOptimizerActionRepository(prisma);
+  const campaignRepo = new PrismaCampaignRepository(prisma);
 
   const encryption = {
     encrypt: encryptCredentials,
@@ -60,12 +66,7 @@ async function getInfrastructure() {
       encryption,
       auditRepo,
     ),
-    runOodaLoop: new RunOodaLoopUseCase(
-      {} as never,
-      {} as never,
-      {} as never,
-      auditRepo,
-    ),
+    runOodaLoop: new RunOodaLoopUseCase(campaignRepo, metricsRepo, optimizerActionRepo, auditRepo),
   };
 }
 

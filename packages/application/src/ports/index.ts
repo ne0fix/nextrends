@@ -1,0 +1,11 @@
+export type { AiGenerationGateway, GenerateCreativeParams } from './AiGenerationGateway';
+export type { AuditLogRepository, AuditLogEntry } from './AuditLogRepository';
+export type { CampaignRepository } from './CampaignRepository';
+export type { ComplianceCheckerGateway, ComplianceResult } from './ComplianceCheckerGateway';
+export type { CreativeRepository } from './CreativeRepository';
+export type { IntegrationRepository } from './IntegrationRepository';
+export type { MetricsRepository, AdMetricsResult } from './MetricsRepository';
+export type { OptimizerActionRepository } from './OptimizerActionRepository';
+export type { ProductRepository } from './ProductRepository';
+export type { PublicationRepository, PublicationProps } from './PublicationRepository';
+export type { PublishingGateway, PublishParams, PublishResult } from './PublishingGateway';

@@ -1,4 +1,7 @@
 // Ports
+export type { MetricsRepository, AdMetricsResult } from './ports/MetricsRepository';
+export type { OptimizerActionRepository } from './ports/OptimizerActionRepository';
+export type { CampaignRepository } from './ports/CampaignRepository';
 export type { IntegrationRepository } from './ports/IntegrationRepository';
 export type { CreativeRepository } from './ports/CreativeRepository';
 export type { ProductRepository } from './ports/ProductRepository';
