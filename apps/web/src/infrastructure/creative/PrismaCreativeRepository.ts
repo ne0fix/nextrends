@@ -51,7 +51,7 @@ export class PrismaCreativeRepository implements CreativeRepository {
         id: p.id, orgId: p.orgId, productId: p.productId,
         parentId: p.parentId ?? null, version: p.version,
         format: p.format, framework: p.framework, hookType: p.hookType,
-        angle: p.angle, assets: p.assets, seed: p.seed, metadata: p.metadata,
+        angle: p.angle, assets: p.assets as never, seed: p.seed, metadata: p.metadata as never,
         riskScore: p.riskScore, status: p.status,
       },
     });
@@ -61,7 +61,7 @@ export class PrismaCreativeRepository implements CreativeRepository {
     const p = creative.toProps();
     await this.db.creative.update({
       where: { id: p.id },
-      data: { status: p.status, riskScore: p.riskScore, assets: p.assets, metadata: p.metadata },
+      data: { status: p.status, riskScore: p.riskScore, assets: p.assets as never, metadata: p.metadata as never },
     });
   }
 }

@@ -5,7 +5,13 @@ export class PrismaAuditLogRepository implements AuditLogRepository {
   constructor(private readonly db: PrismaClient) {}
 
   async append(entry: AuditLogEntry) {
-    await this.db.auditLog.create({ data: { ...entry } });
+    await this.db.auditLog.create({
+      data: {
+        ...entry,
+        before: entry.before as never ?? undefined,
+        after: entry.after as never ?? undefined,
+      },
+    });
   }
 
   async findByOrg(orgId: string, opts?: { limit?: number; cursor?: string }) {

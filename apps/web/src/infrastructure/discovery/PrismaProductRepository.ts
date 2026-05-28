@@ -46,8 +46,8 @@ export class PrismaProductRepository implements ProductRepository {
     const p = product.toProps();
     await this.db.product.upsert({
       where: { source_externalId: { source: p.source, externalId: p.externalId } },
-      create: { id: p.id, source: p.source, externalId: p.externalId, name: p.name, niche: p.niche, hotScore: p.hotScore, dossier: p.dossier, saturation: p.saturation, blocked: p.blocked },
-      update: { name: p.name, hotScore: p.hotScore, dossier: p.dossier, saturation: p.saturation },
+      create: { id: p.id, source: p.source, externalId: p.externalId, name: p.name, niche: p.niche, hotScore: p.hotScore, dossier: p.dossier as never, saturation: p.saturation, blocked: p.blocked },
+      update: { name: p.name, hotScore: p.hotScore, dossier: p.dossier as never, saturation: p.saturation },
     });
   }
 
@@ -55,7 +55,7 @@ export class PrismaProductRepository implements ProductRepository {
     const p = product.toProps();
     await this.db.product.update({
       where: { id: p.id },
-      data: { hotScore: p.hotScore, saturation: p.saturation, blocked: p.blocked, dossier: p.dossier },
+      data: { hotScore: p.hotScore, saturation: p.saturation, blocked: p.blocked, dossier: p.dossier as never },
     });
   }
 }
