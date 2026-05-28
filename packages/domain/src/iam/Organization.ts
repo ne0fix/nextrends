@@ -1,4 +1,4 @@
-import { BusinessRuleViolation } from '../shared/DomainError.js';
+import { BusinessRuleViolation } from '../shared/DomainError';
 
 export type Plan = 'STARTER' | 'PRO' | 'AGENCY' | 'ENTERPRISE';
 export type Role = 'OWNER' | 'ADMIN' | 'MANAGER' | 'CREATIVE' | 'FINANCE' | 'VIEWER';

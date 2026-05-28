@@ -1,15 +1,14 @@
-import { prisma } from './db.js';
-import { encryptCredentials, decryptCredentials } from './encryption.js';
+import { prisma } from './db';
+import { encryptCredentials, decryptCredentials } from './encryption';
 
-// Infrastructure adapters (lazy imports to avoid circular deps in edge)
 async function getInfrastructure() {
-  const { PrismaIntegrationRepository } = await import('../infrastructure/integrations/PrismaIntegrationRepository.js');
-  const { PrismaCreativeRepository } = await import('../infrastructure/creative/PrismaCreativeRepository.js');
-  const { PrismaProductRepository } = await import('../infrastructure/discovery/PrismaProductRepository.js');
-  const { PrismaAuditLogRepository } = await import('../infrastructure/governance/PrismaAuditLogRepository.js');
-  const { ClaudeAiGenerationGateway } = await import('../infrastructure/ai/ClaudeAiGenerationGateway.js');
-  const { ComplianceCheckerGatewayImpl } = await import('../infrastructure/compliance/ComplianceCheckerGatewayImpl.js');
-  const { MetaOAuthGatewayImpl } = await import('../infrastructure/integrations/MetaOAuthGatewayImpl.js');
+  const { PrismaIntegrationRepository } = await import('../infrastructure/integrations/PrismaIntegrationRepository');
+  const { PrismaCreativeRepository } = await import('../infrastructure/creative/PrismaCreativeRepository');
+  const { PrismaProductRepository } = await import('../infrastructure/discovery/PrismaProductRepository');
+  const { PrismaAuditLogRepository } = await import('../infrastructure/governance/PrismaAuditLogRepository');
+  const { ClaudeAiGenerationGateway } = await import('../infrastructure/ai/ClaudeAiGenerationGateway');
+  const { ComplianceCheckerGatewayImpl } = await import('../infrastructure/compliance/ComplianceCheckerGatewayImpl');
+  const { MetaOAuthGatewayImpl } = await import('../infrastructure/integrations/MetaOAuthGatewayImpl');
 
   const integrationRepo = new PrismaIntegrationRepository(prisma);
   const creativeRepo = new PrismaCreativeRepository(prisma);

@@ -1,6 +1,6 @@
 import { Integration } from '@nextface/domain';
-import type { IntegrationRepository } from '../../ports/IntegrationRepository.js';
-import type { AuditLogRepository } from '../../ports/AuditLogRepository.js';
+import type { IntegrationRepository } from '../../ports/IntegrationRepository';
+import type { AuditLogRepository } from '../../ports/AuditLogRepository';
 
 export interface MetaOAuthGateway {
   exchangeCode(code: string, redirectUri: string): Promise<{

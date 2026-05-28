@@ -1,9 +1,9 @@
 import { Creative } from '@nextface/domain';
-import type { CreativeRepository } from '../../ports/CreativeRepository.js';
-import type { ProductRepository } from '../../ports/ProductRepository.js';
-import type { AiGenerationGateway } from '../../ports/AiGenerationGateway.js';
-import type { ComplianceCheckerGateway } from '../../ports/ComplianceCheckerGateway.js';
-import type { AuditLogRepository } from '../../ports/AuditLogRepository.js';
+import type { CreativeRepository } from '../../ports/CreativeRepository';
+import type { ProductRepository } from '../../ports/ProductRepository';
+import type { AiGenerationGateway } from '../../ports/AiGenerationGateway';
+import type { ComplianceCheckerGateway } from '../../ports/ComplianceCheckerGateway';
+import type { AuditLogRepository } from '../../ports/AuditLogRepository';
 import type { GenerateCreativeInput } from '@nextface/schemas';
 
 export class GenerateCreativeUseCase {

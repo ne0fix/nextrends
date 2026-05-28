@@ -1,4 +1,4 @@
-import { BusinessRuleViolation } from '../shared/DomainError.js';
+import { BusinessRuleViolation } from '../shared/DomainError';
 
 export type ProductSource = 'KIWIFY' | 'HOTMART' | 'EDUZZ' | 'MONETIZZE' | 'HEROSPARK' | 'TICTO';
 

@@ -1,4 +1,4 @@
-import { BusinessRuleViolation } from '../shared/DomainError.js';
+import { BusinessRuleViolation } from '../shared/DomainError';
 
 export type Provider =
   | 'META' | 'TIKTOK' | 'GOOGLE' | 'YOUTUBE' | 'WHATSAPP' | 'TELEGRAM'

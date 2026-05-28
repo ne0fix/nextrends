@@ -1,5 +1,5 @@
 import type { MetaOAuthGateway } from '@nextface/application';
-import { env } from '../../lib/env.js';
+import { env } from '../../lib/env';
 
 export class MetaOAuthGatewayImpl implements MetaOAuthGateway {
   private readonly baseUrl = `https://graph.facebook.com/${env.META_API_VERSION}`;

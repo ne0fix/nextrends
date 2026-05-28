@@ -1,4 +1,4 @@
-import { BusinessRuleViolation } from '../shared/DomainError.js';
+import { BusinessRuleViolation } from '../shared/DomainError';
 
 export type CreativeFormat = 'COPY' | 'IMAGE' | 'VIDEO_SHORT' | 'CAROUSEL' | 'VSL';
 export type CreativeFramework = 'AIDA' | 'PAS' | 'BAB' | 'FOUR_P' | 'FAB';

@@ -1,4 +1,4 @@
-import type { AuditLogRepository } from '../../ports/AuditLogRepository.js';
+import type { AuditLogRepository } from '../../ports/AuditLogRepository';
 
 export interface MetricsRepository {
   getAdMetrics(orgId: string, adId: string, days: number): Promise<{

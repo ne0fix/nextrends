@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { AiGenerationGateway, GenerateCreativeParams } from '@nextface/application';
-import { env } from '../../lib/env.js';
+import { env } from '../../lib/env';
 
 export class ClaudeAiGenerationGateway implements AiGenerationGateway {
   private readonly client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });

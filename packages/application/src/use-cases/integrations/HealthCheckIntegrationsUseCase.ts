@@ -1,5 +1,5 @@
-import type { IntegrationRepository } from '../../ports/IntegrationRepository.js';
-import type { AuditLogRepository } from '../../ports/AuditLogRepository.js';
+import type { IntegrationRepository } from '../../ports/IntegrationRepository';
+import type { AuditLogRepository } from '../../ports/AuditLogRepository';
 
 export interface IntegrationHealthChecker {
   check(provider: string, credentials: Record<string, string>): Promise<{ ok: boolean; error?: string }>;
