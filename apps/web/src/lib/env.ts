@@ -41,6 +41,12 @@ const envSchema = z.object({
   ENABLE_REAL_PUBLISHING: z.preprocess((v) => v === 'true' || v === true, z.boolean()).default(false),
   NODE_ENV: z.enum(['development','test','production']).default('development'),
   RESEND_API_KEY: optStr,
+  WORKER_SECRET:   optStr.default(''),
+  HOTMART_WEBHOOK_TOKEN: optStr,
+  KIWIFY_WEBHOOK_SECRET: optStr,
+  TIKTOK_WEBHOOK_SECRET: optStr,
+  WHATSAPP_WEBHOOK_VERIFY_TOKEN: optStr,
+  NEXT_PUBLIC_PIXEL_URL: optStr.default('https://pixel.nextface.app'),
 });
 
 export type Env = z.infer<typeof envSchema>;

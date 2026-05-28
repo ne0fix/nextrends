@@ -1,0 +1,16 @@
+{
+  "name": "@nextface/sdk",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./src/pixel.ts",
+  "exports": {
+    ".": "./src/pixel.ts",
+    "./pixel": "./src/pixel.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}
