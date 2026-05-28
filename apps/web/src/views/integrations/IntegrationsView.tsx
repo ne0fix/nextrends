@@ -41,16 +41,16 @@ function metaOAuthUrl(): string {
   // Fase 1 (dev/teste): escopos básicos que funcionam sem App Review
   // Fase 2 (produção): adicionar ads_management, instagram_content_publish etc. após App Review
   const scopesBasic = [
-    'email',
     'public_profile',
     'business_management',
     'pages_show_list',
     'pages_read_engagement',
-    'pages_manage_metadata',
   ];
 
   // Escopos avançados — só incluir se o app tiver App Review aprovado
   const scopesAdvanced = [
+    'email',
+    'pages_manage_metadata',
     'ads_management',
     'ads_read',
     'pages_manage_posts',
