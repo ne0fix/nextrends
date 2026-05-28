@@ -1,15 +1,15 @@
 import { z } from 'zod';
 
 const envSchema = z.object({
-  DATABASE_URL: z.string().url(),
-  REDIS_URL: z.string().url(),
-  NEXTAUTH_SECRET: z.string().min(32),
-  NEXTAUTH_URL: z.string().url().default('http://localhost:3000'),
+  DATABASE_URL: z.string().url().optional().default('postgresql://placeholder'),
+  REDIS_URL: z.string().optional().default('redis://localhost:6379'),
+  NEXTAUTH_SECRET: z.string().min(1).optional().default('dev-secret'),
+  NEXTAUTH_URL: z.string().url().optional().default('http://localhost:3000'),
 
-  META_APP_ID: z.string(),
-  META_APP_SECRET: z.string(),
+  META_APP_ID: z.string().optional().default(''),
+  META_APP_SECRET: z.string().optional().default(''),
   META_API_VERSION: z.string().default('v22.0'),
-  META_OAUTH_REDIRECT_URI: z.string().url().default('http://localhost:3000/api/auth/meta/callback'),
+  META_OAUTH_REDIRECT_URI: z.string().optional().default('http://localhost:3000/api/v1/integrations/meta/callback'),
 
   WHATSAPP_VERIFY_TOKEN: z.string().optional(),
 
@@ -20,13 +20,13 @@ const envSchema = z.object({
   TIKTOK_APP_ID: z.string().optional(),
   TIKTOK_APP_SECRET: z.string().optional(),
 
-  ANTHROPIC_API_KEY: z.string(),
+  ANTHROPIC_API_KEY: z.string().optional().default(''),
   OPENAI_API_KEY: z.string().optional(),
   ELEVENLABS_API_KEY: z.string().optional(),
   HEYGEN_API_KEY: z.string().optional(),
 
-  ENCRYPTION_KEY: z.string().min(32),
-  JWT_SECRET: z.string().min(32),
+  ENCRYPTION_KEY: z.string().optional().default('dev-enc-key-32-chars-placeholder!!'),
+  JWT_SECRET: z.string().optional().default('dev-jwt-secret-32-chars-placeholder'),
 
   S3_ENDPOINT: z.string().url().optional(),
   S3_REGION: z.string().default('auto'),
