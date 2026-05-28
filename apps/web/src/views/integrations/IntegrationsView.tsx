@@ -38,16 +38,41 @@ function StatusBadge({ status, ok }: { status: string; ok: boolean }) {
 }
 
 function metaOAuthUrl(): string {
+  // Fase 1 (dev/teste): escopos básicos que funcionam sem App Review
+  // Fase 2 (produção): adicionar ads_management, instagram_content_publish etc. após App Review
+  const scopesBasic = [
+    'email',
+    'public_profile',
+    'business_management',
+    'pages_show_list',
+    'pages_read_engagement',
+    'pages_manage_metadata',
+  ];
+
+  // Escopos avançados — só incluir se o app tiver App Review aprovado
+  const scopesAdvanced = [
+    'ads_management',
+    'ads_read',
+    'pages_manage_posts',
+    'pages_manage_engagement',
+    'instagram_business_basic',
+    'instagram_content_publish',
+    'instagram_manage_comments',
+    'instagram_manage_insights',
+    'read_insights',
+    'whatsapp_business_management',
+    'whatsapp_business_messaging',
+  ];
+
+  const appReviewApproved = process.env.NEXT_PUBLIC_META_APP_REVIEW === 'true';
+  const scopes = appReviewApproved
+    ? [...scopesBasic, ...scopesAdvanced]
+    : scopesBasic;
+
   const params = new URLSearchParams({
     client_id: process.env.NEXT_PUBLIC_META_APP_ID ?? '',
     redirect_uri: `${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/api/v1/integrations/meta/callback`,
-    scope: [
-      'ads_management', 'ads_read', 'business_management',
-      'pages_show_list', 'pages_manage_posts', 'pages_read_engagement', 'pages_manage_engagement',
-      'instagram_basic', 'instagram_content_publish', 'instagram_manage_comments',
-      'instagram_manage_insights', 'read_insights',
-      'whatsapp_business_management', 'whatsapp_business_messaging',
-    ].join(','),
+    scope: scopes.join(','),
     response_type: 'code',
   });
   return `https://www.facebook.com/v22.0/dialog/oauth?${params}`;
@@ -62,7 +87,20 @@ export function IntegrationsView({ integrations }: { integrations: Integration[]
   return (
     <div>
       <h1 className="text-2xl font-bold mb-2">Integrações</h1>
-      <p className="text-gray-500 text-sm mb-6">Conecte suas plataformas para ativar a automação.</p>
+      <p className="text-gray-500 text-sm mb-4">Conecte suas plataformas para ativar a automação.</p>
+
+      {process.env.NEXT_PUBLIC_META_APP_REVIEW !== 'true' && (
+        <div className="mb-5 p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm">
+          <p className="font-semibold text-amber-800 mb-1">⚠️ App Meta em modo desenvolvimento</p>
+          <p className="text-amber-700 text-xs">
+            A conexão Meta funciona apenas para usuários Admin/Tester do app enquanto o App Review não for aprovado.
+            Para liberar para todos, submeta o app para revisão em{' '}
+            <a href="https://developers.facebook.com/apps/1024344033282892/app-review/" target="_blank" rel="noreferrer"
+              className="underline font-medium">Meta App Review</a>
+            {' '}e adicione <code className="bg-amber-100 px-1 rounded">NEXT_PUBLIC_META_APP_REVIEW=true</code> nas env vars da Vercel.
+          </p>
+        </div>
+      )}
 
       <div className="grid gap-4">
         {Object.entries(PROVIDER_META).map(([key, meta]) => {
