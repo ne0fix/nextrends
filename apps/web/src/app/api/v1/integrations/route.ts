@@ -7,7 +7,7 @@ export async function GET() {
   if (!session?.user?.orgId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const integrations = await prisma.integration.findMany({
-    where: { orgId: session.user.orgId },
+    where: { orgId: session.user?.orgId ?? '' },
     select: {
       id: true, provider: true, status: true,
       externalAccountIds: true, scopes: true,

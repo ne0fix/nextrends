@@ -19,8 +19,8 @@ export async function GET(req: NextRequest) {
   try {
     const container = await getContainer();
     const result = await container.connectMeta.execute({
-      orgId: session.user.orgId,
-      actorId: session.user.id!,
+      orgId: session.user?.orgId ?? '',
+      actorId: session.user?.id ?? '',
       code,
       redirectUri: env.META_OAUTH_REDIRECT_URI,
     });
