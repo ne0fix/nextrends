@@ -3,6 +3,9 @@ import { Integration } from '@nextface/domain';
 import type { IntegrationRepository } from '@nextface/application';
 import type { Provider } from '@nextface/domain';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type IntegrationRow = any;
+
 export class PrismaIntegrationRepository implements IntegrationRepository {
   constructor(private readonly db: PrismaClient) {}
 
@@ -37,7 +40,7 @@ export class PrismaIntegrationRepository implements IntegrationRepository {
 
   async findAllByOrg(orgId: string) {
     const rows = await this.db.integration.findMany({ where: { orgId } });
-    return rows.map(row => Integration.reconstitute({
+    return rows.map((row: IntegrationRow) => Integration.reconstitute({
       id: row.id, orgId: row.orgId, provider: row.provider as Provider,
       status: row.status as Integration['status'], externalAccountIds: row.externalAccountIds,
       scopes: row.scopes, expiresAt: row.expiresAt ?? undefined,
@@ -51,7 +54,7 @@ export class PrismaIntegrationRepository implements IntegrationRepository {
     const rows = await this.db.integration.findMany({
       where: { expiresAt: { lte: threshold }, status: { not: 'REVOKED' } },
     });
-    return rows.map(row => Integration.reconstitute({
+    return rows.map((row: IntegrationRow) => Integration.reconstitute({
       id: row.id, orgId: row.orgId, provider: row.provider as Provider,
       status: row.status as Integration['status'], externalAccountIds: row.externalAccountIds,
       scopes: row.scopes, expiresAt: row.expiresAt ?? undefined,

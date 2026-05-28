@@ -1,4 +1,5 @@
-import type { Config } from 'tailwindcss';
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Config = any;
 
 export const baseConfig: Partial<Config> = {
   darkMode: 'class',

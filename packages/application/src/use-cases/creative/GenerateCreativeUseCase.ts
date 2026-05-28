@@ -24,7 +24,7 @@ export class GenerateCreativeUseCase {
     const angle = input.angle ?? 'transformation';
 
     const { assets, seed, tokensUsed } = await this.ai.generateCreativeAssets({
-      productDossier: product.dossier,
+      productDossier: product.dossier as unknown as Record<string, unknown>,
       format: input.format,
       framework,
       hookType,

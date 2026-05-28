@@ -25,9 +25,10 @@ export const GenerateCreativeInputSchema = z.object({
   framework: CreativeFrameworkSchema.optional(),
   hookType: HookTypeSchema.optional(),
   angle: z.string().optional(),
-  parentId: z.string().optional(),   // mutação de criativo existente
+  parentId: z.string().optional(),
   targetPersona: z.string().optional(),
 });
+export type GenerateCreativeInput = z.infer<typeof GenerateCreativeInputSchema>;
 
 export const MutateCreativeInputSchema = z.object({
   orgId: z.string(),
@@ -35,9 +36,11 @@ export const MutateCreativeInputSchema = z.object({
   mutationType: z.enum(['HOOK', 'THUMBNAIL', 'CTA', 'MUSIC', 'COPY', 'FULL']),
   reason: z.string().optional(),
 });
+export type MutateCreativeInput = z.infer<typeof MutateCreativeInputSchema>;
 
 export const ApproveCreativeInputSchema = z.object({
   orgId: z.string(),
   creativeId: z.string(),
   actorId: z.string(),
 });
+export type ApproveCreativeInput = z.infer<typeof ApproveCreativeInputSchema>;
