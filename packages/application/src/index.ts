@@ -8,7 +8,7 @@ export type { ProductRepository } from './ports/ProductRepository';
 export type { PublicationRepository, PublicationProps } from './ports/PublicationRepository';
 export type { AiGenerationGateway, GenerateCreativeParams } from './ports/AiGenerationGateway';
 export type { ComplianceCheckerGateway, ComplianceResult } from './ports/ComplianceCheckerGateway';
-export type { PublishingGateway } from './ports/PublishingGateway';
+export type { PublishingGateway, PublishParams, PublishResult } from './ports/PublishingGateway';
 export type { AuditLogRepository, AuditLogEntry } from './ports/AuditLogRepository';
 
 // Use Cases — Integrations

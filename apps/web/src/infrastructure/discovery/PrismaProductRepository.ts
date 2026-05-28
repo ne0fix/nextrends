@@ -52,7 +52,7 @@ export class PrismaProductRepository implements ProductRepository {
   }
 
   async findByExternalId(source: string, externalId: string) {
-    const row = await this.db.product.findUnique({ where: { source_externalId: { source, externalId } } });
+    const row = await this.db.product.findUnique({ where: { source_externalId: { source: source as never, externalId } } });
     return row ? toProduct(row) : null;
   }
 

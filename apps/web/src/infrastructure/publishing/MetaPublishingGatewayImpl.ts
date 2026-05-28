@@ -36,7 +36,7 @@ export class MetaPublishingGatewayImpl implements PublishingGateway {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        ...(isVideo ? { video_url: params.assets.videoUrl, media_type: mediaType } : { image_url: params.assets.imageUrl }),
+        ...(isVideo ? { video_url: params.assets.videoUrl ?? '', media_type: mediaType } : { image_url: params.assets.imageUrl ?? '' }),
         caption: params.copy.primary,
         access_token: accessToken,
       }),

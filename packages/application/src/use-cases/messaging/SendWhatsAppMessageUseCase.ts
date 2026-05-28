@@ -55,20 +55,20 @@ export class SendWhatsAppMessageUseCase {
     if (input.type === 'template') {
       if (!input.templateName) throw new Error('templateName required for template messages');
       result = await this.whatsapp.sendTemplateMessage({
-        phoneNumberId: creds.phoneNumberId,
+        phoneNumberId: creds.phoneNumberId ?? '',
         to: input.to,
         templateName: input.templateName,
         languageCode: input.templateLanguage ?? 'pt_BR',
         components: input.templateComponents,
-        accessToken: creds.accessToken,
+        accessToken: creds.accessToken ?? '',
       });
     } else {
       if (!input.body) throw new Error('body required for text messages');
       result = await this.whatsapp.sendTextMessage({
-        phoneNumberId: creds.phoneNumberId,
+        phoneNumberId: creds.phoneNumberId ?? '',
         to: input.to,
         body: input.body,
-        accessToken: creds.accessToken,
+        accessToken: creds.accessToken ?? '',
       });
     }
 

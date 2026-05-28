@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
 
   const where = {
     orgId: session.user.orgId,
-    ...(provider && { provider }),
+    ...(provider && { provider: provider as never }),
   };
 
   const { count } = await prisma.integration.updateMany({
