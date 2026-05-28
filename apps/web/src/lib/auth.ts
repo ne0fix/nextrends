@@ -1,10 +1,10 @@
-import NextAuth from 'next-auth';
+import NextAuth, { type NextAuthResult } from 'next-auth';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import Google from 'next-auth/providers/google';
 import Resend from 'next-auth/providers/resend';
 import { prisma } from './db';
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+const authConfig: Parameters<typeof NextAuth>[0] = {
   adapter: PrismaAdapter(prisma),
   providers: [
     Google({
@@ -41,4 +41,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     signIn: '/login',
     error: '/login',
   },
-});
+};
+
+const nextAuth: NextAuthResult = NextAuth(authConfig);
+
+export const { handlers, auth, signIn, signOut } = nextAuth;
