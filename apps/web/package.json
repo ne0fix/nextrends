@@ -2,12 +2,9 @@
   "name": "@nextface/web",
   "version": "0.1.0",
   "private": true,
-  "prisma": {
-    "schema": "../../prisma/schema.prisma"
-  },
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "prisma generate --schema=../../prisma/schema.prisma && next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",

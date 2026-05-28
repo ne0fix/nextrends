@@ -26,7 +26,8 @@
       "cache": false
     },
     "db:generate": {
-      "cache": false
+      "cache": false,
+      "inputs": ["prisma/schema.prisma"]
     },
     "db:migrate": {
       "cache": false
