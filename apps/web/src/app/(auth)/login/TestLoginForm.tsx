@@ -32,13 +32,14 @@ export function TestLoginForm() {
     const res = await signIn('test-login', {
       email,
       password,
-      callbackUrl: '/dashboard',
-      redirect: true,
+      redirect: false,
     });
 
-    if (res?.error) {
+    if (res?.error || !res?.ok) {
       setError('Senha incorreta.');
       setLoading(false);
+    } else {
+      window.location.href = '/dashboard';
     }
   }
 
