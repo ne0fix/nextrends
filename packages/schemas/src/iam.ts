@@ -12,13 +12,13 @@ export const CreateOrganizationSchema = z.object({
 });
 
 export const InviteMemberSchema = z.object({
-  orgId: z.string().cuid2(),
+  orgId: z.string().min(1),
   email: z.string().email(),
   role: RoleSchema.default('VIEWER'),
 });
 
 export const UpdateMemberRoleSchema = z.object({
-  orgId: z.string().cuid2(),
-  memberId: z.string().cuid2(),
+  orgId: z.string().min(1),
+  memberId: z.string().min(1),
   role: RoleSchema,
 });

@@ -4,10 +4,10 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@nextface/domain": ["../../packages/domain/src"],
-      "@nextface/application": ["../../packages/application/src"],
-      "@nextface/schemas": ["../../packages/schemas/src"],
-      "@nextface/ui": ["../../packages/ui/src"]
+      "@nextface/domain": ["../../packages/domain/src/index.ts"],
+      "@nextface/application": ["../../packages/application/src/index.ts"],
+      "@nextface/schemas": ["../../packages/schemas/src/index.ts"],
+      "@nextface/ui": ["../../packages/ui/src/index.ts"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],

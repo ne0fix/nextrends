@@ -7,15 +7,14 @@ const nextConfig: NextConfig = {
     '@nextface/schemas',
     '@nextface/ui',
   ],
-  experimental: {
-    serverActions: { bodySizeLimit: '10mb' },
-  },
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: '**.r2.cloudflarestorage.com' },
       { protocol: 'https', hostname: '**.amazonaws.com' },
     ],
   },
+  // Garante que credenciais de DB nunca vazem para o bundle do cliente
+  serverExternalPackages: ['@prisma/client', 'prisma'],
 };
 
 export default nextConfig;
