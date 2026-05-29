@@ -26,6 +26,25 @@ function send(res: ServerResponse, status: number, body: unknown) {
   res.end(payload);
 }
 
+// Parser robusto: corrige quebras de linha literais dentro de strings JSON
+// (o modelo às vezes retorna newlines sem escaping, tornando o JSON inválido)
+function parseJson<T>(text: string): T {
+  try { return JSON.parse(text) as T; } catch {}
+  let fixed = '';
+  let inStr = false;
+  let esc = false;
+  for (const ch of text) {
+    if (esc) { fixed += ch; esc = false; continue; }
+    if (ch === '\\') { fixed += ch; esc = true; continue; }
+    if (ch === '"') { inStr = !inStr; fixed += ch; continue; }
+    if (inStr && ch === '\n') { fixed += '\\n'; continue; }
+    if (inStr && ch === '\r') { fixed += '\\r'; continue; }
+    if (inStr && ch === '\t') { fixed += '\\t'; continue; }
+    fixed += ch;
+  }
+  return JSON.parse(fixed) as T;
+}
+
 export function startAiServer(port: number, logger: Logger) {
   const gateway = new ClaudeCodeSubprocessGateway();
 
@@ -69,7 +88,7 @@ Responda SOMENTE com JSON no formato:
 
         const result = await gateway.run(prompt, SYSTEM_CREATIVE);
         let copies: { primary: string; headline: string; cta: string; description?: string };
-        try { copies = JSON.parse(result.text) as typeof copies; }
+        try { copies = parseJson<typeof copies>(result.text); }
         catch { copies = { primary: result.text, headline: 'Oferta especial', cta: 'Saiba mais' }; }
 
         const usedSeed = (seed as string | undefined) ?? crypto.randomUUID();
@@ -96,7 +115,7 @@ Responda com:
 
         const result = await gateway.run(prompt);
         let dossier: Record<string, unknown>;
-        try { dossier = JSON.parse(result.text) as Record<string, unknown>; }
+        try { dossier = parseJson<Record<string, unknown>>(result.text); }
         catch { dossier = { raw: result.text }; }
 
         logger.info({ costUsd: result.costUsd }, 'ai/dossier completed');
@@ -113,7 +132,7 @@ Formato: { "score": 75, "explanation": "..." }`;
 
         const result = await gateway.run(prompt);
         let parsed: { score: number; explanation: string };
-        try { parsed = JSON.parse(result.text) as typeof parsed; }
+        try { parsed = parseJson<typeof parsed>(result.text); }
         catch { parsed = { score: 50, explanation: result.text }; }
 
         logger.info({ score: parsed.score, costUsd: result.costUsd }, 'ai/hotscore completed');
@@ -131,7 +150,7 @@ Responda: { "classification": "...", "confidence": 0.9, "explanation": "...", "s
 
         const result = await gateway.run(prompt);
         let parsed: { classification: string; confidence: number; explanation: string; suggestedAction?: string };
-        try { parsed = JSON.parse(result.text) as typeof parsed; }
+        try { parsed = parseJson<typeof parsed>(result.text); }
         catch { parsed = { classification: 'STABLE', confidence: 0.5, explanation: result.text }; }
 
         logger.info({ classification: parsed.classification, costUsd: result.costUsd }, 'ai/classify completed');
@@ -153,7 +172,7 @@ Responda SOMENTE com JSON:
 
         const result = await gateway.run(prompt);
         let parsed: { violations: string[]; warnings: string[]; riskScore: number };
-        try { parsed = JSON.parse(result.text) as typeof parsed; }
+        try { parsed = parseJson<typeof parsed>(result.text); }
         catch { parsed = { violations: [], warnings: [], riskScore: 0 }; }
 
         logger.info({ violations: parsed.violations.length, riskScore: parsed.riskScore, costUsd: result.costUsd }, 'ai/compliance completed');
