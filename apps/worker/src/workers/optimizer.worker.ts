@@ -1,11 +1,12 @@
 import { Worker } from 'bullmq';
-import type Redis from 'ioredis';
+
 import type { Logger } from 'pino';
 
 type Deps = { runOodaLoop: { execute(input: { orgId: string; campaignId?: string; dryRun?: boolean }): Promise<void> } };
 
 export function startOptimizerWorker(
-  connection: Redis,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  connection: any,
   logger: Logger,
   getContainer: () => Promise<Deps>,
 ) {

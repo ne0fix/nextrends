@@ -1,11 +1,12 @@
 import { Worker } from 'bullmq';
-import type Redis from 'ioredis';
+
 import type { Logger } from 'pino';
 
 type Deps = { publishToChannel: { execute(input: unknown): Promise<unknown> } };
 
 export function startPublishingWorker(
-  connection: Redis,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  connection: any,
   logger: Logger,
   getContainer: () => Promise<Deps>,
 ) {

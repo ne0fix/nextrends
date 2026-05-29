@@ -1,11 +1,12 @@
 import { Worker } from 'bullmq';
-import type Redis from 'ioredis';
+
 import type { Logger } from 'pino';
 
 type Deps = { generateCreative: { execute(input: unknown): Promise<{ creativeId: string }> } };
 
 export function startCreativeWorker(
-  connection: Redis,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  connection: any,
   logger: Logger,
   getContainer: () => Promise<Deps>,
 ) {
