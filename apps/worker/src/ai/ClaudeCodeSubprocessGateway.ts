@@ -51,7 +51,8 @@ export class ClaudeCodeSubprocessGateway {
       child.on('close', (code) => {
         clearTimeout(timer);
         if (code !== 0) {
-          reject(new Error(`claude saiu com código ${code}: ${stderr.slice(0, 400)}`));
+          const detail = (stderr + stdout).slice(0, 600).trim() || '(sem output)';
+          reject(new Error(`claude saiu com código ${code}: ${detail}`));
           return;
         }
         try {
