@@ -12,11 +12,11 @@ export class MetaPublishingGatewayImpl implements PublishingGateway {
       const igAccountId = credentials.instagramAccountId;
 
       if (igAccountId && (channel === 'IG_FEED' || channel === 'IG_REELS')) {
-        return this.publishToInstagram(igAccountId, params, accessToken);
+        return this.publishToInstagram(igAccountId, params, accessToken ?? '');
       }
 
       if (pageId) {
-        return this.publishToFacebookPage(pageId, params, accessToken);
+        return this.publishToFacebookPage(pageId, params, accessToken ?? '');
       }
     }
 
