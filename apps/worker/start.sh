@@ -1,6 +1,7 @@
 #!/bin/sh
-# Restaura credenciais do Claude Code a partir de CLAUDE_CONFIG_B64
-# e inicia o worker
+# Restaura credenciais do Claude Code e inicia o worker.
+# Funciona tanto em rootDir=apps/worker quanto em rootDir=repo-root.
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 if [ -n "$CLAUDE_CONFIG_B64" ] && [ "$CLAUDE_CONFIG_B64" != "PENDENTE_PREENCHER" ]; then
   echo "[start] Restaurando Claude config..."
@@ -11,4 +12,4 @@ else
   echo "[start] CLAUDE_CONFIG_B64 não definido — usando ANTHROPIC_API_KEY se disponível."
 fi
 
-exec node dist/index.js
+exec node "$SCRIPT_DIR/dist/index.js"
