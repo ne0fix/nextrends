@@ -4,6 +4,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { encryptCredentials } from '@/lib/encryption';
 import { TikTokOAuthGatewayImpl } from '@/infrastructure/integrations/TikTokOAuthGatewayImpl';
+import { cookies } from 'next/headers';
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -19,8 +20,16 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    const cookieStore = await cookies();
+    const codeVerifier = cookieStore.get('tiktok_pkce')?.value;
+    cookieStore.delete('tiktok_pkce');
+
+    if (!codeVerifier) {
+      return NextResponse.redirect(new URL('/integrations?error=tiktok_pkce_missing', req.url));
+    }
+
     const gateway = new TikTokOAuthGatewayImpl();
-    const tokens = await gateway.exchangeCode(code);
+    const tokens = await gateway.exchangeCode(code, codeVerifier);
     const userInfo = await gateway.getUserInfo(tokens.accessToken, tokens.openId).catch(() => ({
       displayName: 'TikTok User',
     }));

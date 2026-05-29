@@ -13,23 +13,26 @@ export class TikTokOAuthGatewayImpl {
   private readonly tokenUrl = 'https://open.tiktokapis.com/v2/oauth/token/';
   private readonly userUrl = 'https://open.tiktokapis.com/v2/user/info/';
 
-  buildAuthUrl(state: string): string {
+  buildAuthUrl(state: string, codeChallenge: string): string {
     const url = new URL('https://www.tiktok.com/v2/auth/authorize/');
     url.searchParams.set('client_key', env.TIKTOK_APP_ID ?? '');
     url.searchParams.set('scope', 'user.info.basic,video.list,video.publish');
     url.searchParams.set('response_type', 'code');
     url.searchParams.set('redirect_uri', env.TIKTOK_OAUTH_REDIRECT_URI ?? '');
     url.searchParams.set('state', state);
+    url.searchParams.set('code_challenge', codeChallenge);
+    url.searchParams.set('code_challenge_method', 'S256');
     return url.toString();
   }
 
-  async exchangeCode(code: string): Promise<TikTokTokenResponse> {
+  async exchangeCode(code: string, codeVerifier: string): Promise<TikTokTokenResponse> {
     const params = new URLSearchParams({
       client_key: env.TIKTOK_APP_ID ?? '',
       client_secret: env.TIKTOK_APP_SECRET ?? '',
       code,
       grant_type: 'authorization_code',
       redirect_uri: env.TIKTOK_OAUTH_REDIRECT_URI ?? '',
+      code_verifier: codeVerifier,
     });
 
     const res = await fetch(this.tokenUrl, {
