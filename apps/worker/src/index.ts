@@ -43,10 +43,10 @@ async function getAllOrgIds(): Promise<string[]> {
 
 async function getContainer() {
   return {
-    generateCreative: { execute: (input: unknown) => callWebApi('/api/v1/creatives', input) },
-    publishToChannel: { execute: (input: unknown) => callWebApi('/api/v1/publishing/publish', input) },
-    healthCheck: { execute: (orgId: string) => callWebApi('/api/v1/integrations/health-check', { orgId }) },
-    runOodaLoop: { execute: (input: unknown) => callWebApi('/api/v1/optimizer', input) },
+    generateCreative: { execute: (input: unknown) => callWebApi('/api/v1/creatives', input) as Promise<{ creativeId: string }> },
+    publishToChannel: { execute: (input: unknown) => callWebApi('/api/v1/publishing/publish', input) as Promise<void> },
+    healthCheck: { execute: (orgId: string) => callWebApi('/api/v1/integrations/health-check', { orgId }) as Promise<void> },
+    runOodaLoop: { execute: (input: unknown) => callWebApi('/api/v1/optimizer', input) as Promise<void> },
     getAllOrgIds,
   };
 }

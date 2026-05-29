@@ -1,7 +1,7 @@
 import { Queue } from 'bullmq';
-import type Redis from 'ioredis';
 
-export function createQueues(connection: Redis) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function createQueues(connection: any) {
   return {
     creativeGenerate:    new Queue('creative.generate',     { connection }),
     publishingPublish:   new Queue('publishing.publish',    { connection }),
