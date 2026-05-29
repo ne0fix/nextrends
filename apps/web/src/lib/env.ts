@@ -22,6 +22,7 @@ const envSchema = z.object({
   GOOGLE_OAUTH_CLIENT_SECRET: optStr,
   TIKTOK_APP_ID:       optStr,
   TIKTOK_APP_SECRET:   optStr,
+  TIKTOK_OAUTH_REDIRECT_URI: optStr.default('https://nextrends-web.vercel.app/api/v1/integrations/tiktok/callback'),
   ANTHROPIC_API_KEY:   optStr.default(''),
   OPENAI_API_KEY:      optStr,
   ELEVENLABS_API_KEY:  optStr,
