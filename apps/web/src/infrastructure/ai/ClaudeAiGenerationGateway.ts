@@ -119,4 +119,29 @@ Responda: { "classification": "...", "confidence": 0.9, "explanation": "...", "s
       suggestedAction?: string;
     };
   }
+
+  async analyzeCompliance(copy: string, channel: string) {
+    const response = await this.client.messages.create({
+      model: this.model,
+      max_tokens: 512,
+      messages: [{
+        role: 'user',
+        content: `Você é um especialista em compliance de publicidade digital brasileiro (CONAR, BACEN, ANVISA).
+Analise este criativo para o canal ${channel} e identifique violações de conformidade.
+
+Criativo:
+${copy}
+
+Responda SOMENTE com JSON:
+{ "violations": ["violação grave 1"], "warnings": ["aviso menor 1"], "riskScore": 0 }`,
+      }],
+    });
+
+    const text = response.content[0]?.type === 'text' ? response.content[0].text : '{"violations":[],"warnings":[],"riskScore":0}';
+    try {
+      return JSON.parse(text) as { violations: string[]; warnings: string[]; riskScore: number };
+    } catch {
+      return { violations: [], warnings: [], riskScore: 0 };
+    }
+  }
 }

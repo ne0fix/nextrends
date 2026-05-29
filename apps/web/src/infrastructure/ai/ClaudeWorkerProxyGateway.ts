@@ -46,4 +46,11 @@ export class ClaudeWorkerProxyGateway implements AiGenerationGateway {
       { metrics },
     );
   }
+
+  async analyzeCompliance(copy: string, channel: string) {
+    return this.post<{ violations: string[]; warnings: string[]; riskScore: number }>(
+      '/ai/compliance',
+      { copy, channel },
+    );
+  }
 }

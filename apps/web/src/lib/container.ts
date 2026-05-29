@@ -83,7 +83,7 @@ async function getInfrastructure() {
       encryption,
       auditRepo,
     ),
-    runOodaLoop: new RunOodaLoopUseCase(campaignRepo, metricsRepo, optimizerActionRepo, auditRepo),
+    runOodaLoop: new RunOodaLoopUseCase(campaignRepo, metricsRepo, optimizerActionRepo, auditRepo, aiGateway),
     createChannel: new CreateChannelUseCase(channelRepo, auditRepo),
     scheduleEditorial: new ScheduleEditorialUseCase(
       { create: async (item) => { await prisma.editorialItem.create({ data: { id: item.id, channelId: item.channelId, creativeId: item.creativeId, scheduledAt: item.scheduledAt, status: item.status as never, caption: item.caption, hashtags: item.hashtags } }); return item; }, findByChannel: async (channelId, opts) => { const rows = await prisma.editorialItem.findMany({ where: { channelId, ...(opts?.from && { scheduledAt: { gte: opts.from } }) }, take: opts?.limit ?? 50, orderBy: { scheduledAt: 'asc' } }); return rows.map(r => ({ id: r.id, channelId: r.channelId, creativeId: r.creativeId ?? undefined, scheduledAt: r.scheduledAt, status: r.status, caption: r.caption ?? undefined, hashtags: r.hashtags })); }, updateStatus: async (id, status) => { await prisma.editorialItem.update({ where: { id }, data: { status: status as never } }); } },

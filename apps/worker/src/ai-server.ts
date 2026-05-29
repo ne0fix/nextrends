@@ -139,6 +139,28 @@ Responda: { "classification": "...", "confidence": 0.9, "explanation": "...", "s
         return;
       }
 
+      // POST /ai/compliance — analyzeCompliance
+      if (url === '/ai/compliance') {
+        const { copy, channel } = body as { copy: string; channel: string };
+        const prompt = `Você é um especialista em compliance de publicidade digital brasileiro (CONAR, BACEN, ANVISA).
+Analise este criativo para o canal ${channel} e identifique violações de conformidade.
+
+Criativo:
+${copy}
+
+Responda SOMENTE com JSON:
+{ "violations": ["violação grave 1"], "warnings": ["aviso menor 1"], "riskScore": 0 }`;
+
+        const result = await gateway.run(prompt);
+        let parsed: { violations: string[]; warnings: string[]; riskScore: number };
+        try { parsed = JSON.parse(result.text) as typeof parsed; }
+        catch { parsed = { violations: [], warnings: [], riskScore: 0 }; }
+
+        logger.info({ violations: parsed.violations.length, riskScore: parsed.riskScore, costUsd: result.costUsd }, 'ai/compliance completed');
+        send(res, 200, { ...parsed, costUsd: result.costUsd });
+        return;
+      }
+
       send(res, 404, { error: 'Not Found' });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);

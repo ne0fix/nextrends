@@ -35,4 +35,10 @@ export interface AiGenerationGateway {
     explanation: string;
     suggestedAction?: string;
   }>;
+
+  analyzeCompliance(copy: string, channel: string): Promise<{
+    violations: string[];
+    warnings: string[];
+    riskScore: number;
+  }>;
 }
