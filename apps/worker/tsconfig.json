@@ -3,6 +3,7 @@
   "compilerOptions": {
     "baseUrl": ".",
     "rootDir": "src",
+    "noEmitOnError": false,
     "paths": {
       "@nextface/domain": ["../../packages/domain/src"],
       "@nextface/application": ["../../packages/application/src"],
