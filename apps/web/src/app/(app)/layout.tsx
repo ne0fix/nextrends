@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
-import { AppSidebar } from '@/views/dashboard/AppSidebar';
+import { AppShell } from '@/components/AppShell';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
@@ -10,11 +10,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!session.user?.orgId) redirect('/onboarding');
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      <AppSidebar orgName={session.user?.orgName ?? 'Minha Org'} userEmail={session.user?.email ?? ''} />
-      <main className="flex-1 overflow-y-auto p-6">
-        {children}
-      </main>
-    </div>
+    <AppShell
+      orgName={session.user?.orgName ?? 'Minha Org'}
+      userEmail={session.user?.email ?? ''}
+    >
+      {children}
+    </AppShell>
   );
 }

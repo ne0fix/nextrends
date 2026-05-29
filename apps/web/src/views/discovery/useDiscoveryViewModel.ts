@@ -6,9 +6,10 @@ export type DiscoveryProduct = {
   source: string;
   name: string;
   niche: string;
-  hotScore: unknown;
+  hotScore: number | string;
   saturation: number;
   dossier: unknown;
+  updatedAt?: string;
 };
 
 export type ScanResult = { indexed: number; errors: string[] };
