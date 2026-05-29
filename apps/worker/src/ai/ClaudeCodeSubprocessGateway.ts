@@ -61,7 +61,9 @@ export class ClaudeCodeSubprocessGateway {
             reject(new Error(`claude retornou erro: ${out.result}`));
             return;
           }
-          resolve({ text: out.result, costUsd: out.cost_usd ?? 0 });
+          // strip markdown fences que o modelo pode adicionar mesmo quando instruído a não fazer
+          const text = out.result.replace(/^```[a-z]*\s*/m, '').replace(/\s*```$/m, '').trim();
+          resolve({ text, costUsd: out.cost_usd ?? 0 });
         } catch {
           // fallback: retorna o texto bruto
           resolve({ text: stdout.trim(), costUsd: 0 });
