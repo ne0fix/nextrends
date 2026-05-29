@@ -14,15 +14,20 @@ type Integration = {
   expiresAt: Date | null;
 };
 
-const PROVIDER_META: Record<string, { name: string; color: string; connectUrl?: string }> = {
+const PROVIDER_META: Record<string, { name: string; color: string; connectUrl?: string; sandbox?: boolean }> = {
   META: {
     name: 'Meta (Facebook + Instagram)',
     color: 'bg-blue-50 border-blue-200',
     connectUrl: undefined,
   },
+  TIKTOK: {
+    name: 'TikTok for Business',
+    color: 'bg-pink-50 border-pink-200',
+    connectUrl: '/api/v1/integrations/tiktok/connect',
+    sandbox: true,
+  },
   WHATSAPP: { name: 'WhatsApp Business', color: 'bg-green-50 border-green-200' },
   YOUTUBE: { name: 'YouTube', color: 'bg-red-50 border-red-200' },
-  TIKTOK: { name: 'TikTok for Business', color: 'bg-pink-50 border-pink-200' },
   TELEGRAM: { name: 'Telegram', color: 'bg-sky-50 border-sky-200' },
   KIWIFY: { name: 'Kiwify', color: 'bg-violet-50 border-violet-200' },
   HOTMART: { name: 'Hotmart', color: 'bg-orange-50 border-orange-200' },
@@ -83,6 +88,7 @@ export function IntegrationsView({ integrations }: { integrations: Integration[]
   const searchParams = useSearchParams();
   const errorParam = searchParams.get('error');
   const detailParam = searchParams.get('detail');
+  const successParam = searchParams.get('success');
 
   const connected = integrations.reduce<Record<string, Integration>>((acc, i) => {
     acc[i.provider] = i;
@@ -93,6 +99,14 @@ export function IntegrationsView({ integrations }: { integrations: Integration[]
     <div>
       <h1 className="text-2xl font-bold mb-2">Integrações</h1>
       <p className="text-gray-500 text-sm mb-4">Conecte suas plataformas para ativar a automação.</p>
+
+      {successParam && (
+        <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-xl text-sm">
+          <p className="font-semibold text-green-800">
+            {successParam === 'tiktok' ? '✓ TikTok conectado com sucesso!' : '✓ Integração conectada com sucesso!'}
+          </p>
+        </div>
+      )}
 
       {errorParam && (
         <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl text-sm">
@@ -117,6 +131,7 @@ export function IntegrationsView({ integrations }: { integrations: Integration[]
       <div className="grid gap-4">
         {Object.entries(PROVIDER_META).map(([key, meta]) => {
           const integration = connected[key];
+          const href = key === 'META' ? metaOAuthUrl() : meta.connectUrl;
 
           return (
             <div key={key} className={`rounded-xl border p-5 flex items-center justify-between ${meta.color}`}>
@@ -128,20 +143,25 @@ export function IntegrationsView({ integrations }: { integrations: Integration[]
                     <p className="text-xs text-gray-500">{integration.externalAccountIds.length} recursos detectados</p>
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-500 mt-1">Não conectado</p>
+                  <div className="mt-1">
+                    <p className="text-sm text-gray-500">Não conectado</p>
+                    {meta.sandbox && (
+                      <p className="text-xs text-amber-600 mt-0.5">⚠ App em revisão — use conta de teste TikTok</p>
+                    )}
+                  </div>
                 )}
               </div>
 
-              {!integration && key === 'META' && (
+              {!integration && href && (
                 <a
-                  href={metaOAuthUrl()}
-                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+                  href={href}
+                  className="flex items-center gap-2 bg-gray-900 hover:bg-gray-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
                 >
                   <ExternalLink className="w-4 h-4" /> Conectar
                 </a>
               )}
 
-              {!integration && key !== 'META' && (
+              {!integration && !href && (
                 <span className="text-xs text-gray-400">Em breve</span>
               )}
 
