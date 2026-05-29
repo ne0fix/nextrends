@@ -26,23 +26,35 @@ function send(res: ServerResponse, status: number, body: unknown) {
   res.end(payload);
 }
 
-// Parser robusto: corrige quebras de linha literais dentro de strings JSON
-// (o modelo às vezes retorna newlines sem escaping, tornando o JSON inválido)
+// Parser robusto: extrai o primeiro objeto JSON balanceado e corrige
+// newlines literais dentro de strings (o modelo às vezes adiciona markdown
+// após o JSON ou retorna newlines sem escaping).
 function parseJson<T>(text: string): T {
   try { return JSON.parse(text) as T; } catch {}
-  let fixed = '';
+  const start = text.indexOf('{');
+  if (start === -1) return JSON.parse(text) as T; // lança erro
+  let out = '';
+  let depth = 0;
   let inStr = false;
   let esc = false;
-  for (const ch of text) {
-    if (esc) { fixed += ch; esc = false; continue; }
-    if (ch === '\\') { fixed += ch; esc = true; continue; }
-    if (ch === '"') { inStr = !inStr; fixed += ch; continue; }
-    if (inStr && ch === '\n') { fixed += '\\n'; continue; }
-    if (inStr && ch === '\r') { fixed += '\\r'; continue; }
-    if (inStr && ch === '\t') { fixed += '\\t'; continue; }
-    fixed += ch;
+  let done = false;
+  for (let i = start; i < text.length; i++) {
+    if (done) break;
+    const ch = text[i];
+    if (esc) { out += ch; esc = false; continue; }
+    if (ch === '\\') { out += ch; esc = true; continue; }
+    if (ch === '"') { inStr = !inStr; out += ch; continue; }
+    if (inStr) {
+      if (ch === '\n') { out += '\\n'; continue; }
+      if (ch === '\r') { out += '\\r'; continue; }
+      if (ch === '\t') { out += '\\t'; continue; }
+      out += ch; continue;
+    }
+    if (ch === '{') depth++;
+    else if (ch === '}') { depth--; if (depth === 0) done = true; }
+    out += ch;
   }
-  return JSON.parse(fixed) as T;
+  return JSON.parse(out) as T;
 }
 
 export function startAiServer(port: number, logger: Logger) {
