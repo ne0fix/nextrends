@@ -32,7 +32,10 @@ export class ClaudeCodeSubprocessGateway {
       ];
       if (systemPrompt) args.push('--system-prompt', systemPrompt);
 
-      const child = spawn('claude', args, { env: { ...process.env } });
+      const child = spawn('claude', args, {
+        env: { ...process.env },
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
 
       let stdout = '';
       let stderr = '';
