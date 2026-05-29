@@ -7,6 +7,7 @@ import { startOptimizerWorker } from './workers/optimizer.worker.js';
 import { startCreativeWorker } from './workers/creative.worker.js';
 import { startHealthCheckWorker } from './workers/health-check.worker.js';
 import { startPublishingWorker } from './workers/publishing.worker.js';
+import { startAiServer } from './ai-server.js';
 
 const logger = pino({
   level: process.env.LOG_LEVEL ?? 'info',
@@ -50,6 +51,11 @@ async function getContainer() {
   };
 }
 
+const AI_SERVER_PORT = Number(process.env.AI_SERVER_PORT ?? 9000);
+const aiServer = process.env.ENABLE_AI_SERVER !== 'false'
+  ? startAiServer(AI_SERVER_PORT, logger)
+  : null;
+
 const queues = createQueues(connection);
 await registerSchedulers(queues, logger);
 
@@ -65,6 +71,7 @@ logger.info({ workerCount: workers.length }, 'NextFace Worker started');
 async function shutdown() {
   logger.info('Graceful shutdown...');
   await Promise.all(workers.map(w => w.close()));
+  aiServer?.close();
   await prisma.$disconnect();
   await connection.quit();
   process.exit(0);

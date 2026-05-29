@@ -42,6 +42,7 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development','test','production']).default('development'),
   RESEND_API_KEY: optStr,
   WORKER_SECRET:   optStr.default(''),
+  WORKER_AI_URL:   optStr, // ex.: https://worker.railway.internal:9000 — usa Claude Code CLI (sem créditos API)
   HOTMART_WEBHOOK_TOKEN: optStr,
   KIWIFY_WEBHOOK_SECRET: optStr,
   TIKTOK_WEBHOOK_SECRET: optStr,

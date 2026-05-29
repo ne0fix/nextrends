@@ -8,6 +8,7 @@ async function getInfrastructure() {
   const { PrismaAuditLogRepository } = await import('../infrastructure/governance/PrismaAuditLogRepository');
   const { PrismaPublicationRepository } = await import('../infrastructure/publishing/PrismaPublicationRepository');
   const { ClaudeAiGenerationGateway } = await import('../infrastructure/ai/ClaudeAiGenerationGateway');
+  const { ClaudeWorkerProxyGateway } = await import('../infrastructure/ai/ClaudeWorkerProxyGateway');
   const { ComplianceCheckerGatewayImpl } = await import('../infrastructure/compliance/ComplianceCheckerGatewayImpl');
   const { MetaOAuthGatewayImpl } = await import('../infrastructure/integrations/MetaOAuthGatewayImpl');
   const { MetaPublishingGatewayImpl } = await import('../infrastructure/publishing/MetaPublishingGatewayImpl');
@@ -24,7 +25,10 @@ async function getInfrastructure() {
   const productRepo = new PrismaProductRepository(prisma);
   const auditRepo = new PrismaAuditLogRepository(prisma);
   const publicationRepo = new PrismaPublicationRepository(prisma);
-  const aiGateway = new ClaudeAiGenerationGateway();
+  const { env } = await import('./env');
+  const aiGateway = env.WORKER_AI_URL
+    ? new ClaudeWorkerProxyGateway(env.WORKER_AI_URL)
+    : new ClaudeAiGenerationGateway();
   const complianceGateway = new ComplianceCheckerGatewayImpl(aiGateway);
   const metaOauth = new MetaOAuthGatewayImpl();
   const publishingGateway = new MetaPublishingGatewayImpl();

@@ -2,6 +2,7 @@
   "extends": "@nextface/config/typescript/node",
   "compilerOptions": {
     "baseUrl": ".",
+    "rootDir": "src",
     "paths": {
       "@nextface/domain": ["../../packages/domain/src"],
       "@nextface/application": ["../../packages/application/src"],
