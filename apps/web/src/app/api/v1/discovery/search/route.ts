@@ -33,8 +33,9 @@ function extractNiche(title: string, description: string): string {
 function titleToProductName(title: string): string {
   return title
     .replace(/\[.*?\]|\(.*?\)/g, '')
-    .replace(/\s+(|#\S+)/g, '')
+    .replace(/\s+#\S+/g, '')        // remove hashtags (ex: #viral #trending)
     .replace(/como |como eu |eu |meu |minha /gi, '')
+    .replace(/\s+/g, ' ')           // normaliza múltiplos espaços
     .trim()
     .slice(0, 80);
 }
@@ -62,10 +63,8 @@ export async function POST(req: NextRequest) {
         metaAccessToken = creds.accessToken ?? null;
       }
     }
-    // Fallback para app token quando nenhuma integração está conectada
-    if (!metaAccessToken && env.META_APP_ID && env.META_APP_SECRET) {
-      metaAccessToken = `${env.META_APP_ID}|${env.META_APP_SECRET}`;
-    }
+    // Sem fallback para app token: Ads Archive API requer user token com ads_read
+    // (app token resulta em "Application does not have permission")
   }
 
   const indexed: string[] = [];
